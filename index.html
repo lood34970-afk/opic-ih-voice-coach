@@ -405,6 +405,8 @@
       let clockTimer = null;
       let startedAt = 0;
       let transcript = '';
+      let liveTranscript = '';
+      let stopFallbackTimer = null;
       let currentUtterance = null;
       let answerActive = false;
       let manualStopRequested = false;
@@ -592,6 +594,8 @@
       function clearRecognitionRestart() {
         if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
         recognitionRestartTimer = null;
+        if (stopFallbackTimer) clearTimeout(stopFallbackTimer);
+        stopFallbackTimer = null;
       }
       function finishAnswer(label) {
         if (answerFinalized) return;
@@ -601,7 +605,7 @@
         stopMeter();
         stopClock();
         setStatus(label || '답변 종료', false);
-        const answer = transcript.trim();
+        const answer = (liveTranscript || transcript).trim();
         if (answer) {
           questionCanAdvance = true;
           answerHasStarted = false;
@@ -634,7 +638,8 @@
           let finalText = ''; let interim = '';
           for (let i = event.resultIndex; i < event.results.length; i += 1) { if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' '; else interim += event.results[i][0].transcript; }
           if (finalText) transcript += finalText;
-          els.line.textContent = (transcript + interim).trim() || '답변 중...';
+          liveTranscript = (transcript + interim).trim();
+          els.line.textContent = liveTranscript || '답변 중...';
         };
         recognition.onerror = function (event) {
           lastRecognitionError = event && event.error ? event.error : '';
@@ -668,6 +673,7 @@
         clearRecognitionRestart();
         if (recognition) { try { recognition.abort(); } catch (error) {} }
         transcript = '';
+        liveTranscript = '';
         answerActive = true;
         answerHasStarted = true;
         questionCanAdvance = false;
@@ -682,6 +688,7 @@
         if (answerActive && recognition) {
           manualStopRequested = true;
           try { recognition.stop(); } catch (error) { finishAnswer('답변 종료'); }
+          stopFallbackTimer = setTimeout(function () { finishAnswer('답변 종료'); }, 900);
           return;
         }
         clearRecognitionRestart();
