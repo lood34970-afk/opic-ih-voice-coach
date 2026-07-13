@@ -406,6 +406,12 @@
       let startedAt = 0;
       let transcript = '';
       let currentUtterance = null;
+      let answerActive = false;
+      let manualStopRequested = false;
+      let answerFinalized = false;
+      let recognitionRestartTimer = null;
+      let lastRecognitionError = '';
+      let answerMaxSeconds = 150;
       let recentQuestionKeys = [];
       let currentSetQueue = [];
       let currentSetTopicKey = '';
@@ -569,22 +575,99 @@
         els.feedback.innerHTML = '';
         tips.slice(0, 3).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
       }
-      function listen() {
-        if (!SpeechRecognition) { setStatus('음성 인식 미지원', false); els.subline.textContent = 'Chrome 또는 Edge에서 열고 마이크 권한을 허용해 주세요.'; return; }
-        if (recognition) recognition.abort(); transcript = '';
-        recognition = new SpeechRecognition(); recognition.lang = 'en-US'; recognition.interimResults = true; recognition.continuous = true;
-        recognition.onstart = function () { setStatus('답변 녹음 중', true); els.line.textContent = '답변 중...'; els.subline.textContent = '멈추지 말고 구체 예시까지 말해 보세요.'; startMeter(); startClock(); };
+      function clearRecognitionRestart() {
+        if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
+        recognitionRestartTimer = null;
+      }
+      function finishAnswer(label) {
+        if (answerFinalized) return;
+        answerFinalized = true;
+        answerActive = false;
+        clearRecognitionRestart();
+        stopMeter();
+        stopClock();
+        setStatus(label || '답변 종료', false);
+        const answer = transcript.trim();
+        if (answer) {
+          addLog('You', answer, true);
+          renderFeedback(answer);
+          els.subline.textContent = '피드백을 보고 같은 문제를 한 번 더 말해 보세요.';
+        } else {
+          els.subline.textContent = '답변이 거의 인식되지 않았습니다. 마이크 권한과 입력 장치를 확인하고 다시 말해 주세요.';
+        }
+      }
+      function startRecognitionCycle() {
+        if (!answerActive || manualStopRequested) return;
+        lastRecognitionError = '';
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+        recognition.continuous = true;
+        recognition.onstart = function () {
+          setStatus('답변 녹음 중', true);
+          if (!transcript.trim()) els.line.textContent = '답변 중...';
+          els.subline.textContent = '자동으로 끊겨도 계속 이어서 듣습니다. 끝나면 종료를 누르세요.';
+          startMeter();
+          if (!clockTimer) startClock();
+        };
         recognition.onresult = function (event) {
           let finalText = ''; let interim = '';
           for (let i = event.resultIndex; i < event.results.length; i += 1) { if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' '; else interim += event.results[i][0].transcript; }
           if (finalText) transcript += finalText;
           els.line.textContent = (transcript + interim).trim() || '답변 중...';
         };
-        recognition.onerror = function () { setStatus('마이크 권한 필요', false); els.subline.textContent = '브라우저의 마이크 권한을 허용한 뒤 다시 눌러 주세요.'; stopMeter(); stopClock(); };
-        recognition.onend = function () { stopMeter(); stopClock(); setStatus('답변 종료', false); const answer = transcript.trim(); if (answer) { addLog('You', answer, true); renderFeedback(answer); els.subline.textContent = '피드백을 보고 같은 문제를 한 번 더 말해 보세요.'; } };
-        recognition.start();
+        recognition.onerror = function (event) {
+          lastRecognitionError = event && event.error ? event.error : '';
+          if (lastRecognitionError === 'not-allowed' || lastRecognitionError === 'service-not-allowed' || lastRecognitionError === 'audio-capture') {
+            manualStopRequested = true;
+            answerActive = false;
+            finishAnswer('마이크 권한 필요');
+            els.subline.textContent = '브라우저의 마이크 권한을 허용한 뒤 다시 눌러 주세요.';
+          }
+        };
+        recognition.onend = function () {
+          stopMeter();
+          const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
+          const shouldRestart = answerActive && !manualStopRequested && elapsed < answerMaxSeconds && lastRecognitionError !== 'not-allowed' && lastRecognitionError !== 'service-not-allowed' && lastRecognitionError !== 'audio-capture';
+          if (shouldRestart) {
+            setStatus('계속 듣는 중', true);
+            els.subline.textContent = '브라우저가 잠깐 끊었습니다. 답변은 계속 이어서 말하면 됩니다.';
+            clearRecognitionRestart();
+            recognitionRestartTimer = setTimeout(startRecognitionCycle, 250);
+            return;
+          }
+          finishAnswer(manualStopRequested ? '답변 종료' : '목표 시간 종료');
+        };
+        try { recognition.start(); }
+        catch (error) {
+          recognitionRestartTimer = setTimeout(startRecognitionCycle, 350);
+        }
       }
-      function stop() { if (recognition) recognition.stop(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); stopMeter(); stopClock(); setStatus('연습 종료', false); }
+      function listen() {
+        if (!SpeechRecognition) { setStatus('음성 인식 미지원', false); els.subline.textContent = 'Chrome 또는 Edge에서 열고 마이크 권한을 허용해 주세요.'; return; }
+        clearRecognitionRestart();
+        if (recognition) { try { recognition.abort(); } catch (error) {} }
+        transcript = '';
+        answerActive = true;
+        manualStopRequested = false;
+        answerFinalized = false;
+        answerMaxSeconds = Math.max(120, Number(els.length.value) + 45);
+        els.line.textContent = '답변 중...';
+        startRecognitionCycle();
+      }
+      function stop() {
+        if (answerActive && recognition) {
+          manualStopRequested = true;
+          try { recognition.stop(); } catch (error) { finishAnswer('답변 종료'); }
+          return;
+        }
+        clearRecognitionRestart();
+        if (recognition) { try { recognition.abort(); } catch (error) {} }
+        if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        stopMeter();
+        stopClock();
+        setStatus('연습 종료', false);
+      }
       els.question.addEventListener('click', nextQuestion);
       els.answer.addEventListener('click', listen);
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
@@ -609,3 +692,4 @@
 </main>
 </body>
 </html>
+
