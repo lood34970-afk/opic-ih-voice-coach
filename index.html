@@ -412,6 +412,8 @@
       let recognitionRestartTimer = null;
       let lastRecognitionError = '';
       let answerMaxSeconds = 150;
+      let questionCanAdvance = true;
+      let answerHasStarted = false;
       let recentQuestionKeys = [];
       let currentSetQueue = [];
       let currentSetTopicKey = '';
@@ -545,11 +547,23 @@
         }
         speakNow(text);
       }
+      function updateQuestionButton() {
+        els.question.textContent = questionCanAdvance ? (lastQuestion ? '다음 문제 듣기' : '문제 듣기') : '현재 문제 다시 듣기';
+      }
       function nextQuestion() {
+        if (!questionCanAdvance && lastQuestion) {
+          speak(lastQuestion);
+          els.subline.textContent = answerHasStarted ? '답변 중에는 현재 문제만 다시 들을 수 있습니다.' : '답변 전에는 문제가 바뀌지 않습니다. 답변 시작을 눌러 주세요.';
+          updateQuestionButton();
+          return;
+        }
         const picked = pickQuestion();
         const t = topic();
         questionIndex += 1;
         renderLists();
+        questionCanAdvance = false;
+        answerHasStarted = false;
+        updateQuestionButton();
         speak(picked.question);
         els.subline.textContent = (els.topic.value === 'random' ? '실전 세트 ' + (5 - picked.remainingInSet) + '/5 · ' : '25문항 랜덤 · ') + t.label;
       }
@@ -589,11 +603,17 @@
         setStatus(label || '답변 종료', false);
         const answer = transcript.trim();
         if (answer) {
+          questionCanAdvance = true;
+          answerHasStarted = false;
+          updateQuestionButton();
           addLog('You', answer, true);
           renderFeedback(answer);
-          els.subline.textContent = '피드백을 보고 같은 문제를 한 번 더 말해 보세요.';
+          els.subline.textContent = '피드백 확인 후 다음 문제 듣기를 누르세요. 같은 문제는 다시 듣기로 복습할 수 있습니다.';
         } else {
-          els.subline.textContent = '답변이 거의 인식되지 않았습니다. 마이크 권한과 입력 장치를 확인하고 다시 말해 주세요.';
+          questionCanAdvance = false;
+          answerHasStarted = false;
+          updateQuestionButton();
+          els.subline.textContent = '답변이 거의 인식되지 않았습니다. 같은 문제로 다시 답변 시작을 눌러 주세요.';
         }
       }
       function startRecognitionCycle() {
@@ -649,6 +669,9 @@
         if (recognition) { try { recognition.abort(); } catch (error) {} }
         transcript = '';
         answerActive = true;
+        answerHasStarted = true;
+        questionCanAdvance = false;
+        updateQuestionButton();
         manualStopRequested = false;
         answerFinalized = false;
         answerMaxSeconds = Math.max(120, Number(els.length.value) + 45);
@@ -672,8 +695,9 @@
       els.answer.addEventListener('click', listen);
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.stop.addEventListener('click', stop);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
+      updateQuestionButton();
       renderLists();
       if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
     })();
