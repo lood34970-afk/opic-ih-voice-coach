@@ -1,0 +1,611 @@
+﻿<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OPIc IH Voice Coach</title>
+  <style>
+    :root { --background: #0f1115; --foreground: #f3f5f7; --card: #181c23; --card-foreground: #f3f5f7; --muted: #252b35; --muted-foreground: #b8c0cc; --border: #333b49; --input: #252b35; --primary: #f3f5f7; --primary-foreground: #111318; --accent: #293140; --accent-foreground: #f3f5f7; --viz-series-1: #7cc7ff; color-scheme: dark; font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 16px; }
+    body { margin: 0; padding: 24px; background: var(--background); color: var(--foreground); }
+    main { max-width: 980px; margin: 0 auto; }
+    .card { background: var(--card); color: var(--card-foreground); border: 1px solid var(--border); border-radius: 16px; padding: 16px; }
+    .btn { appearance: none; border: 1px solid var(--border); border-radius: 10px; background: var(--muted); color: var(--foreground); padding: 0.55rem 0.85rem; font: inherit; cursor: pointer; }
+    .btn:hover { background: var(--accent); }
+    .btn-primary { background: var(--primary); color: var(--primary-foreground); border-color: var(--primary); }
+    .btn-ghost { background: transparent; }
+    .form-label { display: grid; gap: 0.35rem; color: var(--muted-foreground); font-size: 0.92rem; }
+    .form-select, .form-control { border: 1px solid var(--border); border-radius: 10px; background: var(--input); color: var(--foreground); padding: 0.5rem 0.65rem; font: inherit; }
+    .viz-controls, .viz-row { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: end; }
+    .text-small { font-size: 0.88rem; }
+    .text-muted { color: var(--muted-foreground); }
+    @media (max-width: 680px) { body { padding: 14px; } }
+  </style>
+</head>
+<body>
+<main><div id="opic-ih-voice-coach" class="opic-ih-voice-coach">
+  <style>
+    #opic-ih-voice-coach { --gap: 0.85rem; color: var(--foreground); }
+    #opic-ih-voice-coach .oiv-shell { display: grid; gap: var(--gap); }
+    #opic-ih-voice-coach .oiv-top { display: flex; flex-wrap: wrap; gap: 0.65rem; align-items: center; justify-content: space-between; }
+    #opic-ih-voice-coach .oiv-status { display: inline-flex; align-items: center; gap: 0.45rem; }
+    #opic-ih-voice-coach .oiv-dot { width: 0.72rem; height: 0.72rem; border-radius: 999px; background: var(--muted-foreground); display: inline-block; }
+    #opic-ih-voice-coach .oiv-dot.live { background: var(--viz-series-1); box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--viz-series-1) 20%, transparent); }
+    #opic-ih-voice-coach .oiv-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 0.8fr); gap: var(--gap); }
+    #opic-ih-voice-coach .oiv-call { min-height: 18rem; display: grid; gap: 0.85rem; align-content: center; text-align: center; }
+    #opic-ih-voice-coach .oiv-avatar { width: 4.8rem; height: 4.8rem; border-radius: 999px; margin: 0 auto; display: grid; place-items: center; background: color-mix(in srgb, var(--viz-series-1) 22%, var(--card)); color: var(--foreground); }
+    #opic-ih-voice-coach .oiv-avatar i { width: 2.1rem; height: 2.1rem; }
+    #opic-ih-voice-coach .oiv-line { font-weight: 500; }
+    #opic-ih-voice-coach .oiv-subline { color: var(--muted-foreground); min-height: 1.45rem; }
+    #opic-ih-voice-coach .oiv-meter { height: 0.45rem; border-radius: 999px; overflow: hidden; background: var(--muted); max-width: 16rem; margin: 0 auto; width: 100%; }
+    #opic-ih-voice-coach .oiv-meter-bar { height: 100%; width: 0%; background: var(--viz-series-1); transition: width 140ms ease; }
+    #opic-ih-voice-coach .oiv-time { font-weight: 500; }
+    #opic-ih-voice-coach .oiv-log { display: grid; gap: 0.5rem; align-content: start; max-height: 20rem; overflow: auto; padding-inline-end: 0.15rem; }
+    #opic-ih-voice-coach .oiv-bubble { padding: 0.65rem 0.75rem; border-radius: 0.85rem; background: var(--muted); color: var(--foreground); }
+    #opic-ih-voice-coach .oiv-bubble.user { background: color-mix(in srgb, var(--viz-series-1) 14%, var(--muted)); }
+    #opic-ih-voice-coach .oiv-bubble strong { font-weight: 500; }
+    #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
+    #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
+    #opic-ih-voice-coach .oiv-mini-list li + li { margin-top: 0.38rem; }
+    @media (max-width: 680px) {
+      #opic-ih-voice-coach .oiv-main, #opic-ih-voice-coach .oiv-helper { grid-template-columns: 1fr; }
+      #opic-ih-voice-coach .oiv-call { min-height: 14rem; }
+    }
+  </style>
+
+  <div class="oiv-shell">
+    <div class="oiv-top">
+      <div class="oiv-status" aria-live="polite">
+        <span id="oiv-dot" class="oiv-dot" aria-hidden="true"></span>
+        <span id="oiv-status">OPIc IH 마이크 연습 대기 중</span>
+      </div>
+      <div class="viz-controls" aria-label="OPIc IH 연습 선택">
+        <label class="form-label">문제 유형
+          <select id="oiv-topic" class="form-select">
+            <option value="random" selected>설문 기반 랜덤</option>
+            <option value="worker">직장인</option>
+            <option value="home">집/방</option>
+            <option value="neighborhood">동네</option>
+            <option value="family">가족과 생활</option>
+            <option value="housework">집안일</option>
+            <option value="music">음악 듣기</option>
+            <option value="concert">콘서트/공연</option>
+            <option value="game">게임</option>
+            <option value="cooking">요리</option>
+            <option value="pet">반려동물</option>
+            <option value="walking">걷기/조깅</option>
+            <option value="gym">헬스</option>
+            <option value="cycling">자전거</option>
+            <option value="domestic">국내 여행</option>
+            <option value="overseas">해외 여행</option>
+            <option value="camping">캠핑</option>
+            <option value="park">공원 가기</option>
+            <option value="shopping">쇼핑</option>
+            <option value="sns">SNS</option>
+            <option value="phone">휴대폰 사용</option>
+          </select>
+        </label>
+        <label class="form-label">목표 답변
+          <select id="oiv-length" class="form-select">
+            <option value="75">75초</option>
+            <option value="100" selected>100초</option>
+            <option value="120">120초</option>
+          </select>
+        </label>
+      </div>
+    </div>
+
+    <div class="oiv-main">
+      <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
+        <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
+        <div>
+          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 500문항 문제은행에서 실제처럼 한 주제 5연속 질문이 나옵니다.</div>
+          <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
+        </div>
+        <div class="oiv-time" id="oiv-time">00:00</div>
+        <div class="oiv-meter" aria-hidden="true"><div id="oiv-meter" class="oiv-meter-bar"></div></div>
+        <div class="viz-row" aria-label="연습 버튼">
+          <button id="oiv-question" type="button" class="btn btn-primary">문제 듣기</button>
+          <button id="oiv-answer" type="button" class="btn">답변 시작</button>
+          <button id="oiv-repeat" type="button" class="btn">다시 듣기</button>
+          <button id="oiv-stop" type="button" class="btn btn-ghost">종료</button>
+        </div>
+      </section>
+
+      <section class="card" aria-label="질문과 답변 기록">
+        <div class="text-small text-muted">질문과 답변 기록</div>
+        <div id="oiv-log" class="oiv-log" aria-live="polite"></div>
+      </section>
+    </div>
+
+    <div class="oiv-helper">
+      <section class="card">
+        <div class="text-small text-muted">IH 답변 골격</div>
+        <ul id="oiv-structure" class="oiv-mini-list"></ul>
+      </section>
+      <section class="card">
+        <div class="text-small text-muted">쓸 만한 연결어</div>
+        <ul id="oiv-connectors" class="oiv-mini-list"></ul>
+      </section>
+      <section class="card">
+        <div class="text-small text-muted">IH 피드백</div>
+        <ul id="oiv-feedback"></ul>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const root = document.getElementById('opic-ih-voice-coach');
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const topics = {
+        worker: {
+          label: 'Work',
+          questions: [
+            'Tell me about your job. What kind of work do you do, and what is a typical day like?',
+            'Describe your workplace. What does it look like, and what do you like or dislike about it?',
+            'Tell me about a memorable experience you had at work. What happened, and how did you feel?'
+          ],
+          structure: ['직무/회사 한 문장', '하루 루틴', '구체 업무 예시', '느낀 점/마무리'],
+          connectors: ['On a typical day...', 'What I usually do is...', 'The most memorable part was...']
+        },
+        home: {
+          label: 'Home and room',
+          questions: [
+            'Tell me about your home. What does it look like, and what is your favorite part of it?',
+            'Describe your room in detail. What do you keep there, and why do you like it?',
+            'How has your home changed compared to the place where you lived before?'
+          ],
+          structure: ['전체 묘사', '좋아하는 공간', '구체 물건/분위기', '개인 이유'],
+          connectors: ['What I like most is...', 'It feels...', 'Compared to before...']
+        },
+        neighborhood: {
+          label: 'Neighborhood',
+          questions: [
+            'Describe your neighborhood. What places are nearby, and what do people usually do there?',
+            'Tell me about a place in your neighborhood that you visit often.',
+            'Has your neighborhood changed over the years? Describe the changes.'
+          ],
+          structure: ['동네 위치/분위기', '자주 가는 장소', '하는 일', '변화/의견'],
+          connectors: ['Near my place...', 'I often go there to...', 'These days...']
+        },
+        family: {
+          label: 'Family life',
+          questions: [
+            'Tell me about your family. Who do you live with, and what do you usually do together?',
+            'Describe a memorable time you spent with your family.',
+            'How is your family routine different now compared to the past?'
+          ],
+          structure: ['가족 구성', '함께 하는 일', '특별한 경험', '감정/변화'],
+          connectors: ['We usually...', 'One time...', 'As a result...']
+        },
+        housework: {
+          label: 'Housework',
+          questions: [
+            'What kind of housework do you usually do at home? Describe your routine.',
+            'Tell me about a time when doing housework was difficult or annoying.',
+            'How do you divide housework with your family?'
+          ],
+          structure: ['하는 집안일', '빈도/순서', '어려웠던 점', '해결/느낀 점'],
+          connectors: ['First, I usually...', 'The difficult part is...', 'After that...']
+        },
+        music: {
+          label: 'Listening to music',
+          questions: [
+            'What kind of music do you like listening to? When and where do you usually listen to it?',
+            'Tell me about your favorite singer or song. Why do you like it?',
+            'Describe a memorable experience related to music.'
+          ],
+          structure: ['좋아하는 장르', '듣는 상황', '구체 가수/노래', '기분/이유'],
+          connectors: ['I am really into...', 'Whenever I...', 'It makes me feel...']
+        },
+        concert: {
+          label: 'Concerts and performances',
+          questions: [
+            'Tell me about a concert or performance you went to. What was it like?',
+            'Describe the atmosphere at a live performance you enjoyed.',
+            'Would you rather watch a performance online or in person? Explain why.'
+          ],
+          structure: ['언제/어디서', '공연 분위기', '인상 깊은 순간', '개인 의견'],
+          connectors: ['The atmosphere was...', 'The best moment was...', 'Personally...']
+        },
+        game: {
+          label: 'Games',
+          questions: [
+            'What games do you like playing? Describe how you usually play them.',
+            'Tell me about a memorable moment you had while playing a game.',
+            'How have your gaming habits changed compared to the past?'
+          ],
+          structure: ['게임 종류', '플레이 방식', '기억나는 사건', '변화/의견'],
+          connectors: ['I usually play...', 'At that time...', 'Compared to before...']
+        },
+        cooking: {
+          label: 'Cooking',
+          questions: [
+            'Do you like cooking? Describe what you usually cook and how you make it.',
+            'Tell me about a time when you cooked something successfully or unsuccessfully.',
+            'What kind of food would you like to learn to cook? Why?'
+          ],
+          structure: ['요리 종류', '과정 설명', '성공/실패 경험', '맛/느낌'],
+          connectors: ['The first step is...', 'It turned out...', 'That is why...']
+        },
+        pet: {
+          label: 'Pets',
+          questions: [
+            'Tell me about your pet or a pet you would like to have. What is it like?',
+            'Describe your daily routine with a pet.',
+            'Tell me about a funny or memorable moment related to a pet.'
+          ],
+          structure: ['반려동물 소개', '성격/특징', '돌보는 루틴', '에피소드'],
+          connectors: ['My pet is...', 'Every day, I...', 'One funny thing is...']
+        },
+        walking: {
+          label: 'Walking and jogging',
+          questions: [
+            'Tell me about your walking or jogging routine. Where do you usually go?',
+            'Describe your favorite place to walk or jog.',
+            'Tell me about a time when you went for a walk and something memorable happened.'
+          ],
+          structure: ['운동 장소', '빈도/시간', '좋아하는 이유', '기억나는 경험'],
+          connectors: ['I usually go...', 'It helps me...', 'One day...']
+        },
+        gym: {
+          label: 'Gym and fitness',
+          questions: [
+            'Tell me about your workout routine at the gym.',
+            'Describe the gym you go to. What equipment or facilities does it have?',
+            'Tell me about a fitness goal you have and how you are working on it.'
+          ],
+          structure: ['헬스장/운동 소개', '루틴 순서', '목표', '변화/효과'],
+          connectors: ['My routine starts with...', 'My goal is to...', 'I have noticed that...']
+        },
+        cycling: {
+          label: 'Cycling',
+          questions: [
+            'Do you enjoy riding a bicycle? Where do you usually ride?',
+            'Describe a memorable cycling experience you had.',
+            'Compare cycling with another form of exercise you enjoy.'
+          ],
+          structure: ['자전거 타는 장소', '경로/분위기', '사건/경험', '장점 비교'],
+          connectors: ['I usually ride along...', 'What happened was...', 'Compared with...']
+        },
+        domestic: {
+          label: 'Domestic travel',
+          questions: [
+            'Tell me about a domestic trip you took. Where did you go, and what did you do?',
+            'Describe a city or place in your country that you recommend visiting.',
+            'Tell me about a problem you had while traveling in your country.'
+          ],
+          structure: ['장소/시기', '한 일 2개', '좋았던 점', '문제/해결'],
+          connectors: ['I went to...', 'The highlight was...', 'Unfortunately...']
+        },
+        overseas: {
+          label: 'Overseas travel',
+          questions: [
+            'Tell me about an overseas trip you took or would like to take.',
+            'Describe a memorable experience you had while traveling abroad.',
+            'Compare traveling abroad with traveling within your country.'
+          ],
+          structure: ['나라/도시', '경험/문화 차이', '좋았던 점', '비교/의견'],
+          connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
+        },
+        camping: {
+          label: 'Camping',
+          questions: [
+            'Tell me about your camping experience. Where did you go, and what did you do?',
+            'Describe what you need to prepare before going camping.',
+            'Tell me about a problem that can happen while camping and how you would solve it.'
+          ],
+          structure: ['캠핑 장소', '준비물', '활동', '문제/해결'],
+          connectors: ['Before camping...', 'During the trip...', 'If that happens...']
+        },
+        park: {
+          label: 'Parks',
+          questions: [
+            'Describe a park you often visit. What does it look like?',
+            'What do you usually do at a park?',
+            'Tell me about a memorable day you spent at a park.'
+          ],
+          structure: ['공원 묘사', '하는 활동', '분위기', '에피소드'],
+          connectors: ['There is...', 'People usually...', 'I remember when...']
+        },
+        shopping: {
+          label: 'Shopping',
+          questions: [
+            'Tell me about your shopping habits. What do you usually buy, and where?',
+            'Describe a memorable shopping experience, good or bad.',
+            'Compare online shopping with shopping in a store.'
+          ],
+          structure: ['쇼핑 장소/물건', '빈도', '경험', '온라인/오프라인 비교'],
+          connectors: ['I usually buy...', 'One time...', 'The main difference is...']
+        },
+        sns: {
+          label: 'Social media',
+          questions: [
+            'Do you use social media? What platforms do you use, and what do you do there?',
+            'Tell me about a memorable post or video you saw on social media.',
+            'How has social media changed the way people communicate?'
+          ],
+          structure: ['사용 앱', '사용 목적', '본 콘텐츠/경험', '의견/변화'],
+          connectors: ['I mainly use...', 'I came across...', 'These days...']
+        },
+        phone: {
+          label: 'Using a phone',
+          questions: [
+            'Tell me about how you use your phone in daily life.',
+            'Describe an app you use often on your phone and why it is useful.',
+            'Tell me about a time when you had a problem with your phone.'
+          ],
+          structure: ['휴대폰 사용 목적', '자주 쓰는 앱', '구체 상황', '문제/해결'],
+          connectors: ['I use my phone to...', 'The app is useful because...', 'The problem was...']
+        }
+      };
+      const questionTemplates = [
+        "Let's talk about {topic}. First, describe it in as much detail as you can. What is it like, and what makes it different from other things?",
+        "I'd like to know more about {topic}. Tell me what you usually do, when you do it, and who you are usually with.",
+        "Give me a full description of a place, person, object, or situation connected to {topic}. Try to include specific details.",
+        "What is the first thing that comes to mind when you think about {topic}? Explain why it is meaningful to you.",
+        "Tell me about your personal preference related to {topic}. What exactly do you like, and what do you not like?",
+        "Walk me through your normal routine related to {topic}, from the beginning to the end.",
+        "How often do you do something related to {topic}? Tell me about the time, place, and situation.",
+        "Tell me about the people you usually interact with when it comes to {topic}. What do you usually talk about or do together?",
+        "Describe the atmosphere or mood connected to {topic}. What sounds, sights, or feelings do you associate with it?",
+        "What are the most important things to prepare or consider when dealing with {topic}? Explain them one by one.",
+        "Now, tell me about a memorable experience you had related to {topic}. Start with when and where it happened.",
+        "Tell me about the last time you did something related to {topic}. What happened from start to finish?",
+        "Describe a time when something unexpected happened while you were dealing with {topic}.",
+        "Tell me about a time when you had a problem related to {topic}. What was the problem, and how did you solve it?",
+        "Tell me a detailed story about {topic}. Include the background, what happened, and how you felt afterward.",
+        "How was your experience with {topic} different in the past compared with now?",
+        "Compare two different ways people experience {topic}. Which one do you prefer and why?",
+        "How do young people and older people usually think about {topic}? Give examples.",
+        "What has changed the most about {topic} over the last few years?",
+        "What do you think {topic} will be like in the future? Explain your prediction.",
+        "I'm going to give you a situation. You need information about {topic}. Call someone and ask three or four questions.",
+        "Here is a situation. You have a problem related to {topic}. Explain the problem politely and ask for help.",
+        "Imagine you need to change a plan related to {topic}. Call the person involved, explain why, and suggest another option.",
+        "Imagine there was a mistake related to {topic}. Call customer service or a person in charge and request a solution.",
+        "Now let's go deeper. Why did you choose {topic} in your background survey? Give a natural and personal answer."
+      ];
+      function expandQuestionBank() {
+        Object.keys(topics).forEach(function (key) {
+          const t = topics[key];
+          const seen = {};
+          const expanded = [];
+          function add(q) {
+            if (!seen[q] && expanded.length < 25) {
+              seen[q] = true;
+              expanded.push(q);
+            }
+          }
+          t.questions.forEach(add);
+          questionTemplates.forEach(function (template) {
+            add(template.replace(/\{topic\}/g, t.label.toLowerCase()));
+          });
+          let n = 1;
+          while (expanded.length < 25) {
+            add('Follow-up question ' + n + ': give a more detailed personal example related to ' + t.label.toLowerCase() + '. What happened, and what did you learn?');
+            n += 1;
+          }
+          t.questions = expanded.slice(0, 25);
+        });
+      }
+      expandQuestionBank();
+      const els = {
+        dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
+        line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
+        question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
+        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback')
+      };
+      let lastQuestion = '';
+      let questionIndex = 0;
+      let activeTopicKey = 'home';
+      let recognition = null;
+      let meterTimer = null;
+      let clockTimer = null;
+      let startedAt = 0;
+      let transcript = '';
+      let currentUtterance = null;
+      let recentQuestionKeys = [];
+      let currentSetQueue = [];
+      let currentSetTopicKey = '';
+      function topicKeys() { return Object.keys(topics); }
+      function randomTopicKey() {
+        const keys = topicKeys();
+        return keys[Math.floor(Math.random() * keys.length)];
+      }
+      function selectedTopicKey() { return els.topic.value === 'random' ? activeTopicKey : els.topic.value; }
+      function topic() { return topics[selectedTopicKey()]; }
+      function rememberQuestion(key) {
+        recentQuestionKeys.push(key);
+        if (recentQuestionKeys.length > 120) recentQuestionKeys.shift();
+      }
+      function makeQuestionKey(topicKey, question) {
+        return topicKey + ':' + topics[topicKey].questions.indexOf(question);
+      }
+      function chooseFromRange(topicKey, start, end) {
+        const list = topics[topicKey].questions;
+        const min = Math.max(0, start);
+        const max = Math.min(list.length - 1, end);
+        let chosen = list[min];
+        for (let attempt = 0; attempt < 80; attempt += 1) {
+          const index = min + Math.floor(Math.random() * (max - min + 1));
+          const qKey = topicKey + ':' + index;
+          chosen = list[index];
+          if (recentQuestionKeys.indexOf(qKey) === -1) break;
+        }
+        return chosen;
+      }
+      function buildRealisticSet(topicKey) {
+        return [
+          chooseFromRange(topicKey, 0, 4),
+          chooseFromRange(topicKey, 5, 9),
+          chooseFromRange(topicKey, 10, 14),
+          chooseFromRange(topicKey, 15, 19),
+          chooseFromRange(topicKey, 20, 24)
+        ];
+      }
+      function pickQuestion() {
+        if (els.topic.value === 'random') {
+          if (!currentSetQueue.length) {
+            currentSetTopicKey = randomTopicKey();
+            currentSetQueue = buildRealisticSet(currentSetTopicKey);
+          }
+          activeTopicKey = currentSetTopicKey;
+          const question = currentSetQueue.shift();
+          rememberQuestion(makeQuestionKey(activeTopicKey, question));
+          return { topicKey: activeTopicKey, question: question, total: topicKeys().length * 25, remainingInSet: currentSetQueue.length };
+        }
+        activeTopicKey = els.topic.value;
+        currentSetQueue = [];
+        currentSetTopicKey = '';
+        const list = topics[activeTopicKey].questions;
+        let index = Math.floor(Math.random() * list.length);
+        let qKey = activeTopicKey + ':' + index;
+        for (let attempt = 0; attempt < 120; attempt += 1) {
+          index = Math.floor(Math.random() * list.length);
+          qKey = activeTopicKey + ':' + index;
+          if (recentQuestionKeys.indexOf(qKey) === -1) break;
+        }
+        rememberQuestion(qKey);
+        return { topicKey: activeTopicKey, question: list[index], total: 25, remainingInSet: 0 };
+      }
+      function safe(text) { return text.replace(/[&<>"]/g, function (ch) { return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]); }); }
+      function setStatus(text, live) { els.status.textContent = text; els.dot.classList.toggle('live', Boolean(live)); }
+      function addLog(name, text, user) { const div = document.createElement('div'); div.className = 'oiv-bubble' + (user ? ' user' : ''); div.innerHTML = '<strong>' + safe(name) + '</strong><br>' + safe(text); els.log.appendChild(div); els.log.scrollTop = els.log.scrollHeight; }
+      function renderLists() {
+        const t = topic();
+        els.structure.innerHTML = ''; els.connectors.innerHTML = '';
+        t.structure.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; els.structure.appendChild(li); });
+        t.connectors.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; els.connectors.appendChild(li); });
+        renderFeedback('');
+      }
+      function getEnglishVoice() {
+        if (!('speechSynthesis' in window)) return null;
+        const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+        return voices.find(function (v) { return /en-US/i.test(v.lang) && /female|zira|jenny|aria|samantha/i.test(v.name); }) ||
+          voices.find(function (v) { return /en-US/i.test(v.lang); }) ||
+          voices.find(function (v) { return /^en/i.test(v.lang); }) ||
+          null;
+      }
+      function speakNow(text) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        currentUtterance = new SpeechSynthesisUtterance(text);
+        currentUtterance.lang = 'en-US';
+        currentUtterance.rate = 0.86;
+        currentUtterance.pitch = 1;
+        currentUtterance.volume = 1;
+        const voice = getEnglishVoice();
+        if (voice) currentUtterance.voice = voice;
+        currentUtterance.onstart = function () {
+          setStatus('문제 재생 중', false);
+          els.subline.textContent = '질문을 듣고 난 뒤 답변 시작을 누르세요.';
+        };
+        currentUtterance.onend = function () {
+          setStatus('답변 준비', false);
+          els.subline.textContent = '질문을 듣고 바로 답변 시작을 누르세요.';
+        };
+        currentUtterance.onerror = function () {
+          setStatus('음성 재생 실패', false);
+          els.subline.textContent = '다시 듣기를 누르거나 Chrome/Edge의 사이트 소리 권한을 확인해 주세요.';
+        };
+        window.speechSynthesis.speak(currentUtterance);
+        setTimeout(function () {
+          if (!window.speechSynthesis.speaking && !window.speechSynthesis.pending) {
+            const retry = new SpeechSynthesisUtterance(text);
+            retry.lang = 'en-US';
+            retry.rate = 0.86;
+            retry.volume = 1;
+            const retryVoice = getEnglishVoice();
+            if (retryVoice) retry.voice = retryVoice;
+            currentUtterance = retry;
+            window.speechSynthesis.speak(retry);
+          }
+        }, 350);
+      }
+      function speak(text) {
+        lastQuestion = text;
+        els.line.textContent = text;
+        els.subline.textContent = '질문 음성을 준비하고 있습니다.';
+        addLog('Interviewer', text, false);
+        if (!('speechSynthesis' in window)) {
+          setStatus('음성 재생 미지원', false);
+          els.subline.textContent = '이 브라우저는 음성 읽기를 지원하지 않습니다. Chrome 또는 Edge에서 열어 주세요.';
+          return;
+        }
+        if (window.speechSynthesis.getVoices && window.speechSynthesis.getVoices().length === 0) {
+          window.speechSynthesis.onvoiceschanged = function () { speakNow(text); };
+        }
+        speakNow(text);
+      }
+      function nextQuestion() {
+        const picked = pickQuestion();
+        const t = topic();
+        questionIndex += 1;
+        renderLists();
+        speak(picked.question);
+        els.subline.textContent = (els.topic.value === 'random' ? '실전 세트 ' + (5 - picked.remainingInSet) + '/5 · ' : '25문항 랜덤 · ') + t.label;
+      }
+      function startMeter() { stopMeter(); meterTimer = setInterval(function () { els.meter.style.width = (18 + Math.round(Math.random() * 78)) + '%'; }, 150); }
+      function stopMeter() { if (meterTimer) clearInterval(meterTimer); meterTimer = null; els.meter.style.width = '0%'; }
+      function startClock() { stopClock(); startedAt = Date.now(); clockTimer = setInterval(function () { const s = Math.floor((Date.now() - startedAt) / 1000); const m = String(Math.floor(s / 60)).padStart(2, '0'); const r = String(s % 60).padStart(2, '0'); els.time.textContent = m + ':' + r; }, 250); }
+      function stopClock() { if (clockTimer) clearInterval(clockTimer); clockTimer = null; }
+      function renderFeedback(text) {
+        const tips = [];
+        const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
+        const lower = text.toLowerCase();
+        const target = Number(els.length.value);
+        const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
+        if (!SpeechRecognition) tips.push('Chrome 또는 Edge에서 마이크 음성 인식을 켜야 합니다.');
+        if (!text) tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.');
+        if (text) {
+          if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
+          if (!/because|so|that is why|for example|actually|in the end/.test(lower)) tips.push('IH 답변에는 because, for example, in the end 같은 연결어가 필요합니다.');
+          if (els.topic.value === 'experience' && !/ago|last|when|was|were|went|had|did/.test(lower)) tips.push('과거 경험 문제는 과거 시제 신호를 더 분명히 주세요.');
+          if ((els.topic.value === 'problem' || els.topic.value === 'roleplay') && !/could|would|possible|question/.test(lower)) tips.push('롤플레이/돌발은 could, would, would it be possible을 써서 정중하게 가세요.');
+          if (words >= 90 && tips.length === 0) tips.push('좋습니다. IH답게 디테일과 흐름이 살아납니다. 다음엔 더 자연스러운 filler를 섞어 보세요.');
+        }
+        els.feedback.innerHTML = '';
+        tips.slice(0, 3).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
+      }
+      function listen() {
+        if (!SpeechRecognition) { setStatus('음성 인식 미지원', false); els.subline.textContent = 'Chrome 또는 Edge에서 열고 마이크 권한을 허용해 주세요.'; return; }
+        if (recognition) recognition.abort(); transcript = '';
+        recognition = new SpeechRecognition(); recognition.lang = 'en-US'; recognition.interimResults = true; recognition.continuous = true;
+        recognition.onstart = function () { setStatus('답변 녹음 중', true); els.line.textContent = '답변 중...'; els.subline.textContent = '멈추지 말고 구체 예시까지 말해 보세요.'; startMeter(); startClock(); };
+        recognition.onresult = function (event) {
+          let finalText = ''; let interim = '';
+          for (let i = event.resultIndex; i < event.results.length; i += 1) { if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' '; else interim += event.results[i][0].transcript; }
+          if (finalText) transcript += finalText;
+          els.line.textContent = (transcript + interim).trim() || '답변 중...';
+        };
+        recognition.onerror = function () { setStatus('마이크 권한 필요', false); els.subline.textContent = '브라우저의 마이크 권한을 허용한 뒤 다시 눌러 주세요.'; stopMeter(); stopClock(); };
+        recognition.onend = function () { stopMeter(); stopClock(); setStatus('답변 종료', false); const answer = transcript.trim(); if (answer) { addLog('You', answer, true); renderFeedback(answer); els.subline.textContent = '피드백을 보고 같은 문제를 한 번 더 말해 보세요.'; } };
+        recognition.start();
+      }
+      function stop() { if (recognition) recognition.stop(); if ('speechSynthesis' in window) window.speechSynthesis.cancel(); stopMeter(); stopClock(); setStatus('연습 종료', false); }
+      els.question.addEventListener('click', nextQuestion);
+      els.answer.addEventListener('click', listen);
+      els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
+      els.stop.addEventListener('click', stop);
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
+      els.length.addEventListener('change', function () { renderFeedback(transcript); });
+      renderLists();
+      if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
+    })();
+  </script>
+</div>
+
+
+
+
+
+
+
+
+
+
+</main>
+</body>
+</html>
