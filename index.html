@@ -429,6 +429,8 @@
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       let feedbackSpeaking = false;
+      let feedbackSpeechQueue = [];
+      let feedbackSpeechIndex = 0;
       let lastAnswerSeconds = 0;
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
@@ -511,6 +513,8 @@
       }
       function speakNow(text) {
         feedbackSpeaking = false;
+        feedbackSpeechQueue = [];
+        feedbackSpeechIndex = 0;
         els.feedbackSpeak.textContent = '피드백 듣기';
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
@@ -709,13 +713,41 @@
         if (feedbackSpeaking) {
           window.speechSynthesis.cancel();
           feedbackSpeaking = false;
+          feedbackSpeechQueue = [];
+          feedbackSpeechIndex = 0;
           els.feedbackSpeak.textContent = '피드백 듣기';
           els.subline.textContent = '피드백 읽기를 정지했습니다.';
           return;
         }
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
-        const u = new SpeechSynthesisUtterance(lastFeedbackText || '아직 들을 피드백이 없습니다.');
+        feedbackSpeechQueue = splitSpeechText(lastFeedbackText || '아직 들을 피드백이 없습니다.');
+        feedbackSpeechIndex = 0;
+        speakFeedbackChunk();
+      }
+      function splitSpeechText(text) {
+        const parts = String(text || '').replace(/\s+/g, ' ').split(/(?:\.\s+|!\s+|\?\s+|。\s+)/).map(function (x) { return x.trim(); }).filter(Boolean);
+        const chunks = [];
+        let current = '';
+        parts.forEach(function (part) {
+          if ((current + ' ' + part).trim().length > 220 && current) {
+            chunks.push(current);
+            current = part;
+          } else {
+            current = (current + ' ' + part).trim();
+          }
+        });
+        if (current) chunks.push(current);
+        return chunks.length ? chunks : [String(text || '')];
+      }
+      function speakFeedbackChunk() {
+        if (!feedbackSpeechQueue.length || feedbackSpeechIndex >= feedbackSpeechQueue.length) {
+          feedbackSpeaking = false;
+          els.feedbackSpeak.textContent = '피드백 듣기';
+          els.subline.textContent = '피드백 읽기가 끝났습니다.';
+          return;
+        }
+        const u = new SpeechSynthesisUtterance(feedbackSpeechQueue[feedbackSpeechIndex]);
         u.lang = 'ko-KR';
         u.rate = 0.95;
         u.volume = 1;
@@ -725,15 +757,19 @@
         u.onstart = function () {
           feedbackSpeaking = true;
           els.feedbackSpeak.textContent = '피드백 정지';
-          els.subline.textContent = '피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
+          els.subline.textContent = '피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다. (' + (feedbackSpeechIndex + 1) + '/' + feedbackSpeechQueue.length + ')';
         };
         u.onend = function () {
-          feedbackSpeaking = false;
-          els.feedbackSpeak.textContent = '피드백 듣기';
+          if (!feedbackSpeaking) return;
+          feedbackSpeechIndex += 1;
+          setTimeout(function () {
+            if (feedbackSpeaking) speakFeedbackChunk();
+          }, 180);
         };
         u.onerror = function () {
           feedbackSpeaking = false;
           els.feedbackSpeak.textContent = '피드백 듣기';
+          els.subline.textContent = '피드백 읽기가 중단되었습니다. 다시 누르면 처음부터 읽습니다.';
         };
         window.speechSynthesis.speak(u);
       }
@@ -884,6 +920,8 @@
         if (mediaStream) { mediaStream.getTracks().forEach(function (track) { track.stop(); }); mediaStream = null; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         feedbackSpeaking = false;
+        feedbackSpeechQueue = [];
+        feedbackSpeechIndex = 0;
         els.feedbackSpeak.textContent = '피드백 듣기';
         stopMeter();
         stopClock();
