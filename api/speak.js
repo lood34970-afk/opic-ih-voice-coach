@@ -29,7 +29,8 @@ export default async function handler(req, res) {
         voice,
         input,
         response_format: 'mp3',
-        instructions: 'Speak like a calm OPIc coach. Use clear American English for English feedback and natural Korean for Korean explanations. Pause briefly between feedback bullets.'
+        speed: normalizeSpeed(process.env.OPENAI_TTS_SPEED),
+        instructions: 'Speak like a calm OPIc coach at a slower, comfortable study pace. Use clear American English for English feedback and natural Korean for Korean explanations. Pause briefly between feedback bullets.'
       })
     });
 
@@ -61,6 +62,12 @@ function normalizeTtsModel(value) {
   const model = String(value || '').trim();
   if (/^sk-/.test(model)) return 'gpt-4o-mini-tts';
   return model || 'gpt-4o-mini-tts';
+}
+
+function normalizeSpeed(value) {
+  const speed = Number(value || '0.78');
+  if (!Number.isFinite(speed)) return 0.78;
+  return Math.min(1.2, Math.max(0.6, speed));
 }
 
 function normalizeVoice(value) {
