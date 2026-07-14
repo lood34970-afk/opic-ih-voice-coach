@@ -38,8 +38,6 @@
     #opic-ih-voice-coach .oiv-subline { color: var(--muted-foreground); min-height: 1.45rem; }
     #opic-ih-voice-coach .oiv-meter { height: 0.45rem; border-radius: 999px; overflow: hidden; background: var(--muted); max-width: 16rem; margin: 0 auto; width: 100%; }
     #opic-ih-voice-coach .oiv-meter-bar { height: 100%; width: 0%; background: var(--viz-series-1); transition: width 140ms ease; }
-    #opic-ih-voice-coach .oiv-record-actions { justify-content: center; }
-    #opic-ih-voice-coach [hidden] { display: none !important; }
     #opic-ih-voice-coach .oiv-time { font-weight: 500; }
     #opic-ih-voice-coach .oiv-log { display: grid; gap: 0.5rem; align-content: start; max-height: 20rem; overflow: auto; padding-inline-end: 0.15rem; }
     #opic-ih-voice-coach .oiv-bubble { padding: 0.65rem 0.75rem; border-radius: 0.85rem; background: var(--muted); color: var(--foreground); }
@@ -111,10 +109,6 @@
           <button id="oiv-answer" type="button" class="btn">답변 시작</button>
           <button id="oiv-repeat" type="button" class="btn">다시 듣기</button>
           <button id="oiv-stop" type="button" class="btn btn-ghost">종료</button>
-        </div>
-        <div class="viz-row oiv-record-actions" aria-label="녹음 저장과 피드백 요청">
-          <a id="oiv-download" class="btn" href="#" download="opic-answer.wav" hidden>WAV 녹음 파일 다운로드</a>
-          <button id="oiv-copy-prompt" type="button" class="btn" hidden>ChatGPT 피드백 프롬프트 복사</button>
         </div>
       </section>
 
@@ -401,7 +395,7 @@
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
         question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
-        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback'), download: root.querySelector('#oiv-download'), copyPrompt: root.querySelector('#oiv-copy-prompt')
+        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -417,9 +411,6 @@
       let mediaStream = null;
       let audioChunks = [];
       let recordingMimeType = 'audio/webm';
-      let recordedBlob = null;
-      let recordedUrl = '';
-      let lastPromptText = '';
       let currentUtterance = null;
       let answerActive = false;
       let manualStopRequested = false;
@@ -593,7 +584,7 @@
         const target = Number(els.length.value);
         const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
         if (!window.MediaRecorder) tips.push('브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
-        if (!text) { tips.push('WAV 녹음 파일을 ChatGPT에 업로드하고, 생성된 프롬프트를 함께 붙여넣어 transcript와 IH 피드백을 받아보세요.'); tips.push('셀프 체크: 답변이 75초 이상인지, 구체 예시가 있는지, 마지막에 감정/결론이 있는지 확인하세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
+        if (!text) { tips.push('음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
         if (text) {
           if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
           if (!/because|so|that is why|for example|actually|in the end/.test(lower)) tips.push('IH 답변에는 because, for example, in the end 같은 연결어가 필요합니다.');
@@ -623,84 +614,15 @@
         if (clean.includes('ogg')) return 'opic-answer.ogg';
         return 'opic-answer.webm';
       }
-      function audioBufferToWav(audioBuffer) {
-        const numberOfChannels = audioBuffer.numberOfChannels;
-        const sampleRate = audioBuffer.sampleRate;
-        const length = audioBuffer.length * numberOfChannels * 2;
-        const buffer = new ArrayBuffer(44 + length);
-        const view = new DataView(buffer);
-        function writeString(offset, value) {
-          for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
-        }
-        let offset = 0;
-        writeString(offset, 'RIFF'); offset += 4;
-        view.setUint32(offset, 36 + length, true); offset += 4;
-        writeString(offset, 'WAVE'); offset += 4;
-        writeString(offset, 'fmt '); offset += 4;
-        view.setUint32(offset, 16, true); offset += 4;
-        view.setUint16(offset, 1, true); offset += 2;
-        view.setUint16(offset, numberOfChannels, true); offset += 2;
-        view.setUint32(offset, sampleRate, true); offset += 4;
-        view.setUint32(offset, sampleRate * numberOfChannels * 2, true); offset += 4;
-        view.setUint16(offset, numberOfChannels * 2, true); offset += 2;
-        view.setUint16(offset, 16, true); offset += 2;
-        writeString(offset, 'data'); offset += 4;
-        view.setUint32(offset, length, true); offset += 4;
-        const channels = [];
-        for (let channel = 0; channel < numberOfChannels; channel += 1) channels.push(audioBuffer.getChannelData(channel));
-        for (let i = 0; i < audioBuffer.length; i += 1) {
-          for (let channel = 0; channel < numberOfChannels; channel += 1) {
-            const sample = Math.max(-1, Math.min(1, channels[channel][i]));
-            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
-            offset += 2;
-          }
-        }
-        return new Blob([buffer], { type: 'audio/wav' });
+      function blobToBase64(blob) {
+        return new Promise(function (resolve, reject) {
+          const reader = new FileReader();
+          reader.onloadend = function () { resolve(String(reader.result || '').split(',')[1] || ''); };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
       }
-      async function convertRecordingToWav(blob) {
-        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (!AudioContextClass) return blob;
-        const arrayBuffer = await blob.arrayBuffer();
-        const context = new AudioContextClass();
-        try {
-          const audioBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
-          return audioBufferToWav(audioBuffer);
-        } finally {
-          if (context.close) context.close();
-        }
-      }
-      function buildFeedbackPrompt() {
-        const q = lastQuestion || 'No question text was captured.';
-        const target = els.length.value || '100';
-        return [
-          'I uploaded an audio recording of my OPIc practice answer.',
-          '',
-          'Goal: OPIc IH.',
-          'Target answer length: about ' + target + ' seconds.',
-          'Question: ' + q,
-          '',
-          'Please do the following:',
-          '1. Transcribe the uploaded WAV audio accurately. Do not translate it into Korean first.',
-          '2. Evaluate whether the answer sounds like OPIc IH level.',
-          '3. Give feedback on structure, fluency, grammar, vocabulary, and specificity.',
-          '4. Point out awkward expressions and give better natural alternatives.',
-          '5. Give me a stronger sample answer based on my answer, at IH level.',
-          '6. Reply in Korean, but keep corrected English expressions in English.'
-        ].join('\n');
-      }
-      function exposeRecording(blob) {
-        if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-        recordedBlob = blob;
-        recordedUrl = URL.createObjectURL(blob);
-        const filename = (blob.type || '').includes('wav') ? 'opic-answer.wav' : filenameFromMime(blob.type || recordingMimeType || 'audio/webm');
-        els.download.href = recordedUrl;
-        els.download.download = filename;
-        els.download.textContent = (blob.type || '').includes('wav') ? 'WAV 녹음 파일 다운로드' : '녹음 파일 다운로드';
-        els.download.hidden = false;
-        lastPromptText = buildFeedbackPrompt();
-        els.copyPrompt.hidden = false;
-      }
-      function finishAnswer(label, blob) {
+      function finishAnswer(label, answerText) {
         if (answerFinalized) return;
         answerFinalized = true;
         answerActive = false;
@@ -708,18 +630,41 @@
         stopMeter();
         stopClock();
         setStatus(label || '답변 종료', false);
+        const answer = String(answerText || liveTranscript || transcript || '').trim();
+        transcript = answer;
+        liveTranscript = answer;
         questionCanAdvance = true;
         answerHasStarted = false;
         updateQuestionButton();
-        if (blob && blob.size) {
-          exposeRecording(blob);
-          addLog('System', 'Recording saved. Download the WAV file and upload it to ChatGPT with the generated feedback prompt.', false);
-          renderFeedback('');
-          els.subline.textContent = 'WAV 녹음 파일을 다운로드한 뒤 ChatGPT에 업로드하고, 피드백 프롬프트를 함께 붙여넣으세요.';
+        if (answer) {
+          els.line.textContent = answer;
+          addLog('You', answer, true);
         } else {
-          renderFeedback('');
-          els.subline.textContent = '녹음 파일이 만들어지지 않았습니다. 마이크 권한을 확인하고 다시 시도해 주세요.';
+          addLog('System', 'No speech was recognized clearly enough to transcribe.', false);
         }
+        renderFeedback(answer);
+        els.subline.textContent = answer ? 'OpenAI 음성 인식 완료. 피드백 확인 후 다음 문제 듣기를 누르세요.' : 'OpenAI가 음성을 충분히 인식하지 못했습니다. 마이크 위치를 조정하고 다시 시도해 보세요.';
+      }
+      async function transcribeBlob(blob) {
+        setStatus('OpenAI 음성 인식 중', true);
+        els.subline.textContent = '녹음 파일을 OpenAI로 보내 transcript를 만드는 중입니다.';
+        const audioBase64 = await blobToBase64(blob);
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audioBase64: audioBase64,
+            mimeType: blob.type || recordingMimeType || 'audio/webm',
+            filename: filenameFromMime(blob.type || recordingMimeType || 'audio/webm'),
+            prompt: 'This is an English OPIc practice answer by a Korean speaker. The speaker may mention work, home, neighborhood, family, housework, music, concerts, games, cooking, pets, walking, gym, cycling, travel, camping, parks, shopping, SNS, or phones. Transcribe the spoken English accurately. Do not translate into Korean.'
+          })
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok) throw new Error(data.error || 'OpenAI transcription failed.');
+        const text = String(data.text || '').trim();
+        if (!text) throw new Error('OpenAI returned an empty transcript. audio=' + Math.round(blob.size / 1024) + 'KB, type=' + (blob.type || recordingMimeType || 'unknown') + ', model=' + (data.model || 'unknown'));
+        if (data.fallbackUsed) els.subline.textContent = '기본 모델이 비어 있어 Whisper fallback으로 인식했습니다.';
+        return text;
       }
       function listen() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
@@ -728,12 +673,6 @@
           return;
         }
         clearRecognitionRestart();
-        if (recordedUrl) URL.revokeObjectURL(recordedUrl);
-        recordedBlob = null;
-        recordedUrl = '';
-        lastPromptText = '';
-        els.download.hidden = true;
-        els.copyPrompt.hidden = true;
         transcript = '';
         liveTranscript = '';
         audioChunks = [];
@@ -745,7 +684,7 @@
         updateQuestionButton();
         els.line.textContent = '녹음 중... 끝나면 종료를 누르세요.';
         setStatus('답변 녹음 중', true);
-        els.subline.textContent = '무료 모드입니다. 종료 후 녹음 파일과 ChatGPT 피드백 프롬프트가 생성됩니다.';
+        els.subline.textContent = '이제 브라우저 음성 인식이 아니라, 종료 후 OpenAI가 녹음 파일을 인식합니다.';
         navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
           const type = preferredMimeType();
           recordingMimeType = type || 'audio/webm';
@@ -753,22 +692,24 @@
           try { mediaRecorder = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream); }
           catch (error) { mediaRecorder = new MediaRecorder(stream); }
           mediaRecorder.ondataavailable = function (event) { if (event.data && event.data.size > 0) audioChunks.push(event.data); };
-          mediaRecorder.onerror = function () { finishAnswer('녹음 오류', null); };
+          mediaRecorder.onerror = function () { finishAnswer('녹음 오류', ''); };
           mediaRecorder.onstop = async function () {
             stopMeter();
             stopClock();
             if (mediaStream) mediaStream.getTracks().forEach(function (track) { track.stop(); });
             mediaStream = null;
-            const rawBlob = new Blob(audioChunks, { type: recordingMimeType });
-            if (!rawBlob.size) { finishAnswer('녹음 없음', rawBlob); return; }
-            setStatus('WAV 변환 중', true);
-            els.subline.textContent = 'ChatGPT가 더 잘 알아듣도록 녹음을 WAV 파일로 변환하는 중입니다.';
             try {
-              const wavBlob = await convertRecordingToWav(rawBlob);
-              finishAnswer('WAV 저장 완료', wavBlob);
+              const blob = new Blob(audioChunks, { type: recordingMimeType });
+              if (!blob.size) { finishAnswer('녹음 없음', ''); return; }
+              if (blob.size < 2500) { throw new Error('녹음 파일이 너무 작습니다: ' + blob.size + ' bytes. 답변 시작 후 2초 이상 말한 뒤 종료해 주세요.'); }
+              const text = await transcribeBlob(blob);
+              finishAnswer('피드백 준비 완료', text);
             } catch (error) {
-              addLog('System', 'WAV conversion failed, so the original recording format was saved instead: ' + (error.message || error), false);
-              finishAnswer('녹음 저장 완료', rawBlob);
+              setStatus('OpenAI 인식 실패', false);
+              const message = error.message || 'OpenAI 음성 인식에 실패했습니다. Vercel의 OPENAI_API_KEY 설정을 확인해 주세요.';
+              addLog('System', message, false);
+              els.subline.textContent = message;
+              finishAnswer('피드백 제한', '');
             }
           };
           mediaRecorder.start(1000);
@@ -786,9 +727,9 @@
       function stop() {
         if (answerActive && mediaRecorder && mediaRecorder.state !== 'inactive') {
           manualStopRequested = true;
-          setStatus('녹음 저장 중', true);
-          els.subline.textContent = '녹음을 마치고 파일을 만드는 중입니다.';
-          try { mediaRecorder.stop(); } catch (error) { finishAnswer('답변 종료', null); }
+          setStatus('녹음 종료 중', true);
+          els.subline.textContent = '녹음을 마치고 OpenAI 음성 인식으로 넘기는 중입니다.';
+          try { mediaRecorder.stop(); } catch (error) { finishAnswer('답변 종료', ''); }
           return;
         }
         clearRecognitionRestart();
@@ -801,15 +742,6 @@
       els.answer.addEventListener('click', listen);
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.stop.addEventListener('click', stop);
-      els.copyPrompt.addEventListener('click', function () {
-        const text = lastPromptText || buildFeedbackPrompt();
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(function () { els.subline.textContent = '피드백 프롬프트를 복사했습니다. ChatGPT에 녹음 파일과 함께 붙여넣으세요.'; }).catch(function () { addLog('Prompt', text, false); });
-        } else {
-          addLog('Prompt', text, false);
-          els.subline.textContent = '브라우저가 복사를 막아 프롬프트를 기록에 표시했습니다.';
-        }
-      });
       els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
