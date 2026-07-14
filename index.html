@@ -46,6 +46,7 @@
     #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: repeat(3, minmax(0, 1fr)); }
     #opic-ih-voice-coach .oiv-feedback-head { display: flex; gap: 0.55rem; align-items: center; justify-content: space-between; }
     #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
+    #opic-ih-voice-coach #oiv-feedback li { white-space: pre-line; }
     #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
     #opic-ih-voice-coach .oiv-mini-list li + li { margin-top: 0.38rem; }
     @media (max-width: 680px) {
@@ -663,20 +664,20 @@
         positives.concat(grammar).concat(tips).slice(0, 10).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
         lastFeedbackText = positives.concat(grammar).concat(tips).join(' ');
       }
-      function renderFeedbackItems(items, speechText) {
+      function renderFeedbackItems(items) {
         const cleanItems = (items || []).map(function (x) { return String(x || '').trim(); }).filter(Boolean);
         els.feedback.innerHTML = '';
-        cleanItems.slice(0, 9).forEach(function (tip) {
+        cleanItems.slice(0, 10).forEach(function (tip) {
           const li = document.createElement('li');
           li.textContent = tip;
           els.feedback.appendChild(li);
         });
-        lastFeedbackText = String(speechText || cleanItems.join(' ') || '').trim() || '피드백을 생성하지 못했습니다.';
+        lastFeedbackText = cleanItems.join(' ').trim() || '피드백을 생성하지 못했습니다.';
       }
       async function requestDetailedFeedback(answer) {
         if (!answer) return;
         setStatus('GPT 정밀 피드백 생성 중', true);
-        renderFeedbackItems(['GPT가 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조를 정밀 분석하는 중입니다.'], 'GPT 정밀 피드백을 생성하는 중입니다.');
+        renderFeedbackItems(['GPT가 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조를 정밀 분석하는 중입니다.']);
         els.subline.textContent = '정밀 피드백이 생성되면 자동으로 읽어 줍니다.';
         try {
           const response = await fetch('/api/feedback', {
@@ -692,7 +693,7 @@
           });
           const data = await response.json().catch(function () { return {}; });
           if (!response.ok) throw new Error(data.error || 'GPT feedback failed.');
-          renderFeedbackItems(data.items, data.speechText);
+          renderFeedbackItems(data.items);
           setStatus('GPT 정밀 피드백 완료', false);
           els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();

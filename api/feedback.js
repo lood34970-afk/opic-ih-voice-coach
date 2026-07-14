@@ -31,7 +31,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model,
         temperature: 0.25,
-        max_tokens: 850,
+        max_tokens: 1100,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -39,10 +39,12 @@ export default async function handler(req, res) {
             content: [
               'You are an expert OPIc speaking coach for a Korean learner aiming for IH.',
               'Evaluate whether the answer directly answers the question.',
-              'Give practical feedback in Korean, concise but detailed.',
+              'Give practical feedback, concise but detailed.',
               'Focus on OPIc IH: relevance, structure, detail, grammar, and natural correction of the learner’s own sentences.',
               'Do not provide a full model answer. Instead, correct the learner’s actual wording with before/after examples.',
-              'Return only valid JSON with keys: items (array of 6-9 Korean strings), speechText (Korean string).'
+              'Return only valid JSON with key items. items must be an array of 8-10 strings.',
+              'The first half must be English feedback only. The second half must be Korean translations of the same feedback in the same order.',
+              'For every correction, the recommended expression after the arrow must remain in English, even inside the Korean translation.'
             ].join(' ')
           },
           {
@@ -58,10 +60,11 @@ export default async function handler(req, res) {
               '1. First item: overall IH readiness in one sentence.',
               '2. Check relevance to the exact question.',
               '3. Mention 2-4 concrete grammar or wording corrections from the transcript.',
-              '4. Use this format for corrections: "내 표현: ... → 추천: ..."',
-              '5. Do NOT write a full model answer. Do NOT replace the learner’s whole answer.',
-              '6. Give 2-3 reusable sentence patterns that are close to what the learner tried to say.',
-              '7. Keep every item useful for the next attempt.'
+              '4. Use this English correction format: "You said: ... -> Better: ..."',
+              '5. In the Korean translation, use this format: "내 표현: ... -> 추천: [English corrected sentence]" and explain in Korean.',
+              '6. Do NOT write a full model answer. Do NOT replace the learner’s whole answer.',
+              '7. Give 2-3 reusable sentence patterns that are close to what the learner tried to say.',
+              '8. Keep every item useful for the next attempt.'
             ].join('\n')
           }
         ]
@@ -82,8 +85,8 @@ export default async function handler(req, res) {
     const content = String(data?.choices?.[0]?.message?.content || '').trim();
     let parsed;
     try { parsed = JSON.parse(content); } catch { parsed = { items: content.split(/\n+/).filter(Boolean), speechText: content }; }
-    const items = Array.isArray(parsed.items) ? parsed.items.map(String).filter(Boolean).slice(0, 9) : [];
-    const speechText = String(parsed.speechText || items.join(' ') || content).trim();
+    const items = Array.isArray(parsed.items) ? parsed.items.map(String).filter(Boolean).slice(0, 10) : [];
+    const speechText = items.join(' ');
 
     return res.status(200).json({ items, speechText, model });
   } catch (error) {
