@@ -429,6 +429,7 @@
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       let feedbackSpeaking = false;
+      let lastAnswerSeconds = 0;
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
         const keys = topicKeys();
@@ -658,6 +659,48 @@
         positives.concat(grammar).concat(tips).slice(0, 10).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
         lastFeedbackText = positives.concat(grammar).concat(tips).join(' ');
       }
+      function renderFeedbackItems(items, speechText) {
+        const cleanItems = (items || []).map(function (x) { return String(x || '').trim(); }).filter(Boolean);
+        els.feedback.innerHTML = '';
+        cleanItems.slice(0, 9).forEach(function (tip) {
+          const li = document.createElement('li');
+          li.textContent = tip;
+          els.feedback.appendChild(li);
+        });
+        lastFeedbackText = String(speechText || cleanItems.join(' ') || '').trim() || '피드백을 생성하지 못했습니다.';
+      }
+      async function requestDetailedFeedback(answer) {
+        if (!answer) return;
+        setStatus('GPT 정밀 피드백 생성 중', true);
+        renderFeedbackItems(['GPT가 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조를 정밀 분석하는 중입니다.'], 'GPT 정밀 피드백을 생성하는 중입니다.');
+        els.subline.textContent = '정밀 피드백이 생성되면 자동으로 읽어 줍니다.';
+        try {
+          const response = await fetch('/api/feedback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question: lastQuestion,
+              answer: answer,
+              topic: topic().label,
+              targetSeconds: Number(els.length.value),
+              answerSeconds: lastAnswerSeconds
+            })
+          });
+          const data = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(data.error || 'GPT feedback failed.');
+          renderFeedbackItems(data.items, data.speechText);
+          setStatus('GPT 정밀 피드백 완료', false);
+          els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
+          if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+          feedbackSpeaking = false;
+          els.feedbackSpeak.textContent = '피드백 듣기';
+          speakFeedback();
+        } catch (error) {
+          setStatus('GPT 피드백 실패', false);
+          els.subline.textContent = (error && error.message) ? error.message : 'GPT 정밀 피드백 생성에 실패했습니다.';
+          renderFeedback(answer);
+        }
+      }
       function speakFeedback() {
         if (!('speechSynthesis' in window)) {
           els.subline.textContent = '이 브라우저는 피드백 음성 읽기를 지원하지 않습니다.';
@@ -725,6 +768,7 @@
         if (answerFinalized) return;
         answerFinalized = true;
         answerActive = false;
+        lastAnswerSeconds = startedAt ? Math.max(0, Math.floor((Date.now() - startedAt) / 1000)) : 0;
         clearRecognitionRestart();
         stopMeter();
         stopClock();
@@ -742,7 +786,12 @@
           addLog('System', 'No speech was recognized clearly enough to transcribe.', false);
         }
         renderFeedback(answer);
-        els.subline.textContent = answer ? 'OpenAI 음성 인식 완료. 피드백 확인 후 다음 문제 듣기를 누르세요.' : 'OpenAI가 음성을 충분히 인식하지 못했습니다. 마이크 위치를 조정하고 다시 시도해 보세요.';
+        if (answer) {
+          els.subline.textContent = 'OpenAI 음성 인식 완료. GPT 정밀 피드백을 생성합니다.';
+          requestDetailedFeedback(answer);
+        } else {
+          els.subline.textContent = 'OpenAI가 음성을 충분히 인식하지 못했습니다. 마이크 위치를 조정하고 다시 시도해 보세요.';
+        }
       }
       async function transcribeBlob(blob) {
         setStatus('OpenAI 음성 인식 중', true);

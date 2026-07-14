@@ -9,7 +9,9 @@
 3. 브라우저가 음성을 녹음만 함
 4. 종료 버튼
 5. `/api/transcribe` 서버리스 함수가 녹음 파일을 OpenAI API로 전송
-6. 더 정확한 transcript로 OPIc 피드백 생성
+6. `/api/feedback` 서버리스 함수가 transcript를 GPT로 정밀 평가
+7. 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조 피드백 생성
+8. 피드백 생성 후 자동으로 음성 읽기
 
 ## Vercel 배포 방법
 
@@ -26,6 +28,7 @@ OPENAI_API_KEY=본인_OpenAI_API_Key
 
 ```text
 OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
+OPENAI_FEEDBACK_MODEL=gpt-4o-mini
 ```
 
 5. Deploy를 누릅니다.
@@ -35,4 +38,6 @@ OPENAI_TRANSCRIBE_MODEL=gpt-4o-mini-transcribe
 
 GitHub Pages 주소에서는 `/api/transcribe` 서버리스 함수가 동작하지 않습니다. 반드시 Vercel 주소로 접속해야 OpenAI 음성 인식이 작동합니다.
 
-기본값은 비용을 낮추기 위해 `gpt-4o-mini-transcribe`입니다. 더 높은 정확도가 필요하면 Vercel 환경변수 `OPENAI_TRANSCRIBE_MODEL`을 `gpt-4o-transcribe`로 바꾸면 됩니다.
+기본 음성인식은 비용을 낮추기 위해 `gpt-4o-mini-transcribe`입니다. 더 높은 정확도가 필요하면 Vercel 환경변수 `OPENAI_TRANSCRIBE_MODEL`을 `gpt-4o-transcribe`로 바꾸면 됩니다.
+
+기본 정밀 피드백 모델은 `gpt-4o-mini`입니다. `OPENAI_FEEDBACK_MODEL`은 선택값이라 설정하지 않아도 됩니다.
