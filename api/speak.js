@@ -65,8 +65,8 @@ function normalizeTtsModel(value) {
 }
 
 function normalizeSpeed(value) {
-  const speed = Number(value || '0.78');
-  if (!Number.isFinite(speed)) return 0.78;
+  const speed = Number(value || '0.86');
+  if (!Number.isFinite(speed)) return 0.86;
   return Math.min(1.2, Math.max(0.6, speed));
 }
 
