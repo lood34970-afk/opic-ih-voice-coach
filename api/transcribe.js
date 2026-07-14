@@ -45,7 +45,7 @@
       return { ok: upstream.ok, status: upstream.status, data, text: String(data.text || '').trim(), model };
     }
 
-    const preferredModel = process.env.OPENAI_TRANSCRIBE_MODEL || 'gpt-4o-mini-transcribe';
+    const preferredModel = normalizeTranscribeModel(process.env.OPENAI_TRANSCRIBE_MODEL);
     let result = await requestTranscription(preferredModel);
     let fallback = null;
 
@@ -56,9 +56,9 @@
 
     if (!result.ok) {
       return res.status(result.status || 500).json({
-        error: result.data?.error?.message || 'OpenAI transcription failed.',
-        detail: result.data,
-        fallback
+        error: cleanOpenAIError(result.data?.error?.message) || 'OpenAI transcription failed.',
+        model: result.model,
+        fallbackUsed: Boolean(fallback && result.model === fallback.model)
       });
     }
 
@@ -85,4 +85,17 @@ function filenameFromMime(mimeType) {
   if (clean.includes('ogg')) return 'opic-answer.ogg';
   if (clean.includes('webm')) return 'opic-answer.webm';
   return 'opic-answer.webm';
+}
+
+function normalizeTranscribeModel(value) {
+  const model = String(value || '').trim();
+  const allowed = new Set(['gpt-4o-mini-transcribe', 'gpt-4o-transcribe', 'whisper-1']);
+  if (allowed.has(model)) return model;
+  return 'gpt-4o-mini-transcribe';
+}
+
+function cleanOpenAIError(message) {
+  return String(message || '')
+    .replace(/sk-[A-Za-z0-9_-]+/g, 'sk-...')
+    .replace(/'sk-[^']+'/g, "'sk-...'");
 }
