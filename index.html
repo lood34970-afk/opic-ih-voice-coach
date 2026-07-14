@@ -407,6 +407,10 @@
       let transcript = '';
       let liveTranscript = '';
       let stopFallbackTimer = null;
+      let mediaRecorder = null;
+      let mediaStream = null;
+      let audioChunks = [];
+      let recordingMimeType = 'audio/webm';
       let currentUtterance = null;
       let answerActive = false;
       let manualStopRequested = false;
@@ -579,7 +583,7 @@
         const lower = text.toLowerCase();
         const target = Number(els.length.value);
         const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
-        if (!SpeechRecognition) tips.push('Chrome 또는 Edge에서 마이크 음성 인식을 켜야 합니다.');
+        if (!window.MediaRecorder) tips.push('브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
         if (!text) { tips.push('음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
         if (text) {
           if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
@@ -597,7 +601,20 @@
         if (stopFallbackTimer) clearTimeout(stopFallbackTimer);
         stopFallbackTimer = null;
       }
-      function finishAnswer(label) {
+      function preferredMimeType() {
+        const candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/mp4', 'audio/mpeg'];
+        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
+        return candidates.find(function (type) { return MediaRecorder.isTypeSupported(type); }) || '';
+      }
+      function blobToBase64(blob) {
+        return new Promise(function (resolve, reject) {
+          const reader = new FileReader();
+          reader.onloadend = function () { resolve(String(reader.result || '').split(',')[1] || ''); };
+          reader.onerror = reject;
+          reader.readAsDataURL(blob);
+        });
+      }
+      function finishAnswer(label, answerText) {
         if (answerFinalized) return;
         answerFinalized = true;
         answerActive = false;
@@ -605,103 +622,109 @@
         stopMeter();
         stopClock();
         setStatus(label || '답변 종료', false);
-        const answer = (liveTranscript || transcript).trim();
+        const answer = String(answerText || liveTranscript || transcript || '').trim();
+        transcript = answer;
+        liveTranscript = answer;
         questionCanAdvance = true;
         answerHasStarted = false;
         updateQuestionButton();
         if (answer) {
+          els.line.textContent = answer;
           addLog('You', answer, true);
         } else {
           addLog('System', 'No speech was recognized clearly enough to transcribe.', false);
         }
         renderFeedback(answer);
-        els.subline.textContent = answer ? '피드백 확인 후 다음 문제 듣기를 누르세요. 같은 문제는 다시 듣기로 복습할 수 있습니다.' : '인식된 답변이 거의 없어도 피드백을 남겼습니다. 마이크 위치를 조정하고 다음 문제 또는 현재 문제 다시 듣기를 선택하세요.';
+        els.subline.textContent = answer ? 'OpenAI 음성 인식 완료. 피드백 확인 후 다음 문제 듣기를 누르세요.' : 'OpenAI가 음성을 충분히 인식하지 못했습니다. 마이크 위치를 조정하고 다시 시도해 보세요.';
       }
-      function startRecognitionCycle() {
-        if (!answerActive || manualStopRequested) return;
-        lastRecognitionError = '';
-        recognition = new SpeechRecognition();
-        recognition.lang = 'en-US';
-        recognition.interimResults = true;
-        recognition.continuous = true;
-        recognition.maxAlternatives = 3;
-        recognition.onstart = function () {
-          setStatus('답변 녹음 중', true);
-          if (!transcript.trim()) els.line.textContent = '답변 중...';
-          els.subline.textContent = '자동으로 끊겨도 계속 이어서 듣습니다. 끝나면 종료를 누르세요.';
-          startMeter();
-          if (!clockTimer) startClock();
-        };
-        recognition.onresult = function (event) {
-          let finalText = ''; let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; i += 1) {
-            const result = event.results[i];
-            let best = result[0] ? result[0].transcript : '';
-            for (let a = 1; a < result.length; a += 1) { if ((result[a].confidence || 0) > (result[0].confidence || 0) && result[a].transcript) best = result[a].transcript; }
-            if (result.isFinal) finalText += best + ' '; else interim += best;
-          }
-          if (finalText) transcript += finalText;
-          liveTranscript = (transcript + interim).trim();
-          els.line.textContent = liveTranscript || '답변 중...';
-        };
-        recognition.onerror = function (event) {
-          lastRecognitionError = event && event.error ? event.error : '';
-          if (lastRecognitionError === 'not-allowed' || lastRecognitionError === 'service-not-allowed' || lastRecognitionError === 'audio-capture') {
-            manualStopRequested = true;
-            answerActive = false;
-            finishAnswer('마이크 권한 필요');
-            els.subline.textContent = '브라우저의 마이크 권한을 허용한 뒤 다시 눌러 주세요.';
-          }
-        };
-        recognition.onend = function () {
-          stopMeter();
-          const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
-          const shouldRestart = answerActive && !manualStopRequested && elapsed < answerMaxSeconds && lastRecognitionError !== 'not-allowed' && lastRecognitionError !== 'service-not-allowed' && lastRecognitionError !== 'audio-capture';
-          if (shouldRestart) {
-            setStatus('계속 듣는 중', true);
-            els.subline.textContent = '브라우저가 잠깐 끊었습니다. 답변은 계속 이어서 말하면 됩니다.';
-            clearRecognitionRestart();
-            recognitionRestartTimer = setTimeout(startRecognitionCycle, 250);
-            return;
-          }
-          finishAnswer(manualStopRequested ? '답변 종료' : '목표 시간 종료');
-        };
-        try { recognition.start(); }
-        catch (error) {
-          recognitionRestartTimer = setTimeout(startRecognitionCycle, 350);
-        }
+      async function transcribeBlob(blob) {
+        setStatus('OpenAI 음성 인식 중', true);
+        els.subline.textContent = '녹음 파일을 OpenAI로 보내 transcript를 만드는 중입니다.';
+        const audioBase64 = await blobToBase64(blob);
+        const response = await fetch('/api/transcribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            audioBase64: audioBase64,
+            mimeType: blob.type || recordingMimeType || 'audio/webm',
+            filename: 'opic-answer.webm',
+            prompt: 'This is an English OPIc practice answer by a Korean speaker. The speaker may mention work, home, neighborhood, family, housework, music, concerts, games, cooking, pets, walking, gym, cycling, travel, camping, parks, shopping, SNS, or phones. Transcribe the spoken English accurately. Do not translate into Korean.'
+          })
+        });
+        const data = await response.json().catch(function () { return {}; });
+        if (!response.ok) throw new Error(data.error || 'OpenAI transcription failed.');
+        return String(data.text || '').trim();
       }
       function listen() {
-        if (!SpeechRecognition) { setStatus('음성 인식 미지원', false); els.subline.textContent = 'Chrome 또는 Edge에서 열고 마이크 권한을 허용해 주세요.'; return; }
-        clearRecognitionRestart();
-        if (recognition) { try { recognition.abort(); } catch (error) {} }
-        transcript = '';
-        liveTranscript = '';
-        answerActive = true;
-        answerHasStarted = true;
-        questionCanAdvance = false;
-        updateQuestionButton();
-        manualStopRequested = false;
-        answerFinalized = false;
-        answerMaxSeconds = Math.max(120, Number(els.length.value) + 45);
-        els.line.textContent = '답변 중...';
-        startRecognitionCycle();
-      }
-      function stop() {
-        if (answerActive && recognition) {
-          manualStopRequested = true;
-          try { recognition.stop(); } catch (error) { finishAnswer('답변 종료'); }
-          stopFallbackTimer = setTimeout(function () { finishAnswer('답변 종료'); }, 900);
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+          setStatus('녹음 미지원', false);
+          els.subline.textContent = '이 브라우저는 녹음 API를 지원하지 않습니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.';
           return;
         }
         clearRecognitionRestart();
-        if (recognition) { try { recognition.abort(); } catch (error) {} }
+        transcript = '';
+        liveTranscript = '';
+        audioChunks = [];
+        answerActive = true;
+        answerHasStarted = true;
+        questionCanAdvance = false;
+        manualStopRequested = false;
+        answerFinalized = false;
+        updateQuestionButton();
+        els.line.textContent = '녹음 중... 끝나면 종료를 누르세요.';
+        setStatus('답변 녹음 중', true);
+        els.subline.textContent = '이제 브라우저 음성 인식이 아니라, 종료 후 OpenAI가 녹음 파일을 인식합니다.';
+        navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }).then(function (stream) {
+          const type = preferredMimeType();
+          recordingMimeType = type || 'audio/webm';
+          mediaStream = stream;
+          try { mediaRecorder = type ? new MediaRecorder(stream, { mimeType: type }) : new MediaRecorder(stream); }
+          catch (error) { mediaRecorder = new MediaRecorder(stream); }
+          mediaRecorder.ondataavailable = function (event) { if (event.data && event.data.size > 0) audioChunks.push(event.data); };
+          mediaRecorder.onerror = function () { finishAnswer('녹음 오류', ''); };
+          mediaRecorder.onstop = async function () {
+            stopMeter();
+            stopClock();
+            if (mediaStream) mediaStream.getTracks().forEach(function (track) { track.stop(); });
+            mediaStream = null;
+            try {
+              const blob = new Blob(audioChunks, { type: recordingMimeType });
+              if (!blob.size) { finishAnswer('녹음 없음', ''); return; }
+              const text = await transcribeBlob(blob);
+              finishAnswer('피드백 준비 완료', text);
+            } catch (error) {
+              setStatus('OpenAI 인식 실패', false);
+              els.subline.textContent = error.message || 'OpenAI 음성 인식에 실패했습니다. Vercel의 OPENAI_API_KEY 설정을 확인해 주세요.';
+              finishAnswer('피드백 제한', '');
+            }
+          };
+          mediaRecorder.start(1000);
+          startMeter();
+          startClock();
+        }).catch(function () {
+          answerActive = false;
+          questionCanAdvance = false;
+          answerHasStarted = false;
+          updateQuestionButton();
+          setStatus('마이크 권한 필요', false);
+          els.subline.textContent = '브라우저의 마이크 권한을 허용한 뒤 다시 눌러 주세요.';
+        });
+      }
+      function stop() {
+        if (answerActive && mediaRecorder && mediaRecorder.state !== 'inactive') {
+          manualStopRequested = true;
+          setStatus('녹음 종료 중', true);
+          els.subline.textContent = '녹음을 마치고 OpenAI 음성 인식으로 넘기는 중입니다.';
+          try { mediaRecorder.stop(); } catch (error) { finishAnswer('답변 종료', ''); }
+          return;
+        }
+        clearRecognitionRestart();
+        if (mediaStream) { mediaStream.getTracks().forEach(function (track) { track.stop(); }); mediaStream = null; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         stopMeter();
         stopClock();
         setStatus('연습 종료', false);
-      }
-      els.question.addEventListener('click', nextQuestion);
+      }      els.question.addEventListener('click', nextQuestion);
       els.answer.addEventListener('click', listen);
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.stop.addEventListener('click', stop);
