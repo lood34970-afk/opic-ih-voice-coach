@@ -44,6 +44,7 @@
     #opic-ih-voice-coach .oiv-bubble.user { background: color-mix(in srgb, var(--viz-series-1) 14%, var(--muted)); }
     #opic-ih-voice-coach .oiv-bubble strong { font-weight: 500; }
     #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #opic-ih-voice-coach .oiv-feedback-head { display: flex; gap: 0.55rem; align-items: center; justify-content: space-between; }
     #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
     #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
     #opic-ih-voice-coach .oiv-mini-list li + li { margin-top: 0.38rem; }
@@ -128,7 +129,10 @@
         <ul id="oiv-connectors" class="oiv-mini-list"></ul>
       </section>
       <section class="card">
-        <div class="text-small text-muted">IH 피드백</div>
+        <div class="oiv-feedback-head">
+          <div class="text-small text-muted">IH 피드백</div>
+          <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">피드백 듣기</button>
+        </div>
         <ul id="oiv-feedback"></ul>
       </section>
     </div>
@@ -395,7 +399,7 @@
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
         question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
-        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback')
+        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -423,6 +427,7 @@
       let recentQuestionKeys = [];
       let currentSetQueue = [];
       let currentSetTopicKey = '';
+      let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
         const keys = topicKeys();
@@ -577,23 +582,67 @@
       function stopMeter() { if (meterTimer) clearInterval(meterTimer); meterTimer = null; els.meter.style.width = '0%'; }
       function startClock() { stopClock(); startedAt = Date.now(); clockTimer = setInterval(function () { const s = Math.floor((Date.now() - startedAt) / 1000); const m = String(Math.floor(s / 60)).padStart(2, '0'); const r = String(s % 60).padStart(2, '0'); els.time.textContent = m + ':' + r; }, 250); }
       function stopClock() { if (clockTimer) clearInterval(clockTimer); clockTimer = null; }
+      function countMatches(text, regex) {
+        const matches = text.match(regex);
+        return matches ? matches.length : 0;
+      }
+      function hasAny(text, words) {
+        return words.some(function (word) { return text.indexOf(word) !== -1; });
+      }
       function renderFeedback(text) {
         const tips = [];
+        const positives = [];
         const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
         const lower = text.toLowerCase();
         const target = Number(els.length.value);
         const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
-        if (!window.MediaRecorder) tips.push('브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
-        if (!text) { tips.push('음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
+        const wpm = elapsed > 10 ? Math.round(words / elapsed * 60) : 0;
+        const connectorCount = countMatches(lower, /\b(because|so|for example|actually|in the end|first|also|however|compared|these days|as a result|personally|honestly)\b/g);
+        const pastCount = countMatches(lower, /\b(was|were|went|had|did|visited|met|saw|felt|bought|made|started|used|remember)\b/g);
+        const detailCount = countMatches(lower, /\b(when|where|who|with my|near|around|usually|every|last|one day|for about|minutes|hours|weekend)\b/g);
+        const opinionCount = countMatches(lower, /\b(i think|i feel|i like|i prefer|personally|honestly|it makes me|that is why|that's why)\b/g);
+        if (!window.MediaRecorder) tips.push('환경: 브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
+        if (!text) {
+          tips.push('인식: 음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.');
+          tips.push('목표: 실제 OPIc처럼 같은 주제 5연속 질문에 75~120초로 답하는 연습을 유지하세요.');
+          tips.push('첫 문장 템플릿: "I usually..." 또는 "Let me talk about..."로 바로 시작하면 인식과 답변 흐름이 둘 다 좋아집니다.');
+        }
         if (text) {
-          if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
-          if (!/because|so|that is why|for example|actually|in the end/.test(lower)) tips.push('IH 답변에는 because, for example, in the end 같은 연결어가 필요합니다.');
-          if (els.topic.value === 'experience' && !/ago|last|when|was|were|went|had|did/.test(lower)) tips.push('과거 경험 문제는 과거 시제 신호를 더 분명히 주세요.');
-          if ((els.topic.value === 'problem' || els.topic.value === 'roleplay') && !/could|would|possible|question/.test(lower)) tips.push('롤플레이/돌발은 could, would, would it be possible을 써서 정중하게 가세요.');
-          if (words >= 90 && tips.length === 0) tips.push('좋습니다. IH답게 디테일과 흐름이 살아납니다. 다음엔 더 자연스러운 filler를 섞어 보세요.');
+          positives.push('분량: ' + words + '단어' + (elapsed ? ' / 약 ' + elapsed + '초' : '') + (wpm ? ' / ' + wpm + ' WPM' : '') + '입니다.');
+          if (words >= 95) positives.push('강점: IH 답변으로 확장 가능한 길이입니다. 이제 구조와 에피소드 선명도를 다듬으면 좋습니다.');
+          if (connectorCount >= 3) positives.push('강점: 연결어가 어느 정도 들어가서 답변이 끊긴 단어 나열처럼 들리지 않습니다.');
+          if (detailCount >= 3) positives.push('강점: 시간, 장소, 빈도, 상황 단서가 보여서 개인화된 답변으로 들립니다.');
+          if (words < 55) tips.push('분량: 너무 짧습니다. IH 목표라면 최소 80~120단어 정도로 늘려 보세요. 이유 1개, 구체 예시 1개, 감정 1개를 추가하면 됩니다.');
+          else if (elapsed && elapsed < Math.max(55, target - 35)) tips.push('시간: 목표보다 짧습니다. 마지막에 "What I learned was..." 또는 "That is why I still remember it." 같은 마무리를 붙여 보세요.');
+          if (wpm && wpm > 150) tips.push('속도: 약간 빠를 수 있습니다. IH에서는 빠른 속도보다 또렷한 끊어 말하기가 유리합니다. 문장 사이에 0.5초 쉬어 주세요.');
+          if (wpm && wpm < 75 && words > 40) tips.push('속도: 조금 느린 편입니다. 외운 문장처럼 멈추기보다 짧은 덩어리로 이어 말하는 연습을 해 보세요.');
+          if (connectorCount < 2) tips.push('구성: 연결어가 부족합니다. "First", "For example", "Because of that", "In the end" 중 2~3개를 의식적으로 넣으세요.');
+          if (detailCount < 2) tips.push('디테일: 시간/장소/사람/빈도 정보가 부족합니다. "near my home", "on weekends", "with my family" 같은 구체 정보를 넣으면 IH답게 들립니다.');
+          if (opinionCount < 1) tips.push('개인 의견: 사실 설명만 있고 내 감정이 약합니다. "It helps me relax", "I felt proud", "That is why I like it"처럼 감정 문장을 추가하세요.');
+          if (/tell me about|describe|what is it like|what kind/.test(lastQuestion.toLowerCase()) && !hasAny(lower, ['usually', 'often', 'every', 'typical', 'most of the time'])) tips.push('문제 적합도: 묘사/루틴 질문이면 빈도와 평소 패턴을 먼저 말하세요. 예: "I usually go there twice a week."');
+          if (/memorable|experience|happened|problem|time when/.test(lastQuestion.toLowerCase()) && pastCount < 2) tips.push('시제: 경험/사건 질문인데 과거 시제 신호가 약합니다. "Last year, I went..., and I felt..."처럼 과거 동사를 분명히 넣으세요.');
+          if (/compare|different|changed|before|past/.test(lastQuestion.toLowerCase()) && !hasAny(lower, ['before', 'now', 'these days', 'compared', 'different', 'changed'])) tips.push('비교/변화: before-now 대비가 필요합니다. "In the past..., but these days..." 구조로 한 번 나누세요.');
+          tips.push('다음 답변 목표: 시작 1문장 → 구체 상황 2문장 → 작은 에피소드 3문장 → 감정/의견 2문장 → 마무리 1문장으로 답해 보세요.');
         }
         els.feedback.innerHTML = '';
-        tips.slice(0, 3).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
+        positives.concat(tips).slice(0, 8).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
+        lastFeedbackText = positives.concat(tips).join(' ');
+      }
+      function speakFeedback() {
+        if (!('speechSynthesis' in window)) {
+          els.subline.textContent = '이 브라우저는 피드백 음성 읽기를 지원하지 않습니다.';
+          return;
+        }
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        const u = new SpeechSynthesisUtterance(lastFeedbackText || '아직 들을 피드백이 없습니다.');
+        u.lang = 'ko-KR';
+        u.rate = 0.95;
+        u.volume = 1;
+        const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
+        const koVoice = voices.find(function (v) { return /^ko/i.test(v.lang); });
+        if (koVoice) u.voice = koVoice;
+        window.speechSynthesis.speak(u);
       }
       function clearRecognitionRestart() {
         if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
@@ -742,6 +791,7 @@
       els.answer.addEventListener('click', listen);
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.stop.addEventListener('click', stop);
+      els.feedbackSpeak.addEventListener('click', speakFeedback);
       els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
