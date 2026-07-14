@@ -580,7 +580,7 @@
         const target = Number(els.length.value);
         const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
         if (!SpeechRecognition) tips.push('Chrome 또는 Edge에서 마이크 음성 인식을 켜야 합니다.');
-        if (!text) tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.');
+        if (!text) { tips.push('음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
         if (text) {
           if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
           if (!/because|so|that is why|for example|actually|in the end/.test(lower)) tips.push('IH 답변에는 because, for example, in the end 같은 연결어가 필요합니다.');
@@ -606,19 +606,16 @@
         stopClock();
         setStatus(label || '답변 종료', false);
         const answer = (liveTranscript || transcript).trim();
+        questionCanAdvance = true;
+        answerHasStarted = false;
+        updateQuestionButton();
         if (answer) {
-          questionCanAdvance = true;
-          answerHasStarted = false;
-          updateQuestionButton();
           addLog('You', answer, true);
-          renderFeedback(answer);
-          els.subline.textContent = '피드백 확인 후 다음 문제 듣기를 누르세요. 같은 문제는 다시 듣기로 복습할 수 있습니다.';
         } else {
-          questionCanAdvance = false;
-          answerHasStarted = false;
-          updateQuestionButton();
-          els.subline.textContent = '답변이 거의 인식되지 않았습니다. 같은 문제로 다시 답변 시작을 눌러 주세요.';
+          addLog('System', 'No speech was recognized clearly enough to transcribe.', false);
         }
+        renderFeedback(answer);
+        els.subline.textContent = answer ? '피드백 확인 후 다음 문제 듣기를 누르세요. 같은 문제는 다시 듣기로 복습할 수 있습니다.' : '인식된 답변이 거의 없어도 피드백을 남겼습니다. 마이크 위치를 조정하고 다음 문제 또는 현재 문제 다시 듣기를 선택하세요.';
       }
       function startRecognitionCycle() {
         if (!answerActive || manualStopRequested) return;
@@ -627,6 +624,7 @@
         recognition.lang = 'en-US';
         recognition.interimResults = true;
         recognition.continuous = true;
+        recognition.maxAlternatives = 3;
         recognition.onstart = function () {
           setStatus('답변 녹음 중', true);
           if (!transcript.trim()) els.line.textContent = '답변 중...';
@@ -636,7 +634,12 @@
         };
         recognition.onresult = function (event) {
           let finalText = ''; let interim = '';
-          for (let i = event.resultIndex; i < event.results.length; i += 1) { if (event.results[i].isFinal) finalText += event.results[i][0].transcript + ' '; else interim += event.results[i][0].transcript; }
+          for (let i = event.resultIndex; i < event.results.length; i += 1) {
+            const result = event.results[i];
+            let best = result[0] ? result[0].transcript : '';
+            for (let a = 1; a < result.length; a += 1) { if ((result[a].confidence || 0) > (result[0].confidence || 0) && result[a].transcript) best = result[a].transcript; }
+            if (result.isFinal) finalText += best + ' '; else interim += best;
+          }
           if (finalText) transcript += finalText;
           liveTranscript = (transcript + interim).trim();
           els.line.textContent = liveTranscript || '답변 중...';
