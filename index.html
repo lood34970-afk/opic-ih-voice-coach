@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="ko">
 <head>
   <meta charset="utf-8">
@@ -430,8 +430,8 @@
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       let feedbackSpeaking = false;
-      let feedbackSpeechQueue = [];
-      let feedbackSpeechIndex = 0;
+      let feedbackAudio = null;
+      let feedbackAudioUrl = '';
       let lastAnswerSeconds = 0;
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
@@ -518,10 +518,7 @@
         return voices.find(function (v) { return /^ko/i.test(v.lang); }) || null;
       }
       function speakNow(text) {
-        feedbackSpeaking = false;
-        feedbackSpeechQueue = [];
-        feedbackSpeechIndex = 0;
-        els.feedbackSpeak.textContent = '피드백 듣기';
+        stopFeedbackAudio();
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
         currentUtterance = new SpeechSynthesisUtterance(text);
@@ -702,8 +699,7 @@
           setStatus('GPT 정밀 피드백 완료', false);
           els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-          feedbackSpeaking = false;
-          els.feedbackSpeak.textContent = '피드백 듣기';
+          stopFeedbackAudio();
           speakFeedback();
         } catch (error) {
           setStatus('GPT 피드백 실패', false);
@@ -711,89 +707,73 @@
           renderFeedback(answer);
         }
       }
-      function speakFeedback() {
-        if (!('speechSynthesis' in window)) {
-          els.subline.textContent = '이 브라우저는 피드백 음성 읽기를 지원하지 않습니다.';
-          return;
+      function stopFeedbackAudio(message) {
+        if (feedbackAudio) {
+          try { feedbackAudio.pause(); feedbackAudio.currentTime = 0; } catch (error) {}
         }
+        if (feedbackAudioUrl) {
+          try { URL.revokeObjectURL(feedbackAudioUrl); } catch (error) {}
+        }
+        feedbackAudio = null;
+        feedbackAudioUrl = '';
+        feedbackSpeaking = false;
+        els.feedbackSpeak.textContent = '피드백 듣기';
+        if (message) els.subline.textContent = message;
+      }
+      function base64ToBlob(base64, mimeType) {
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: mimeType || 'audio/mpeg' });
+      }
+      async function speakFeedback() {
         if (feedbackSpeaking) {
-          window.speechSynthesis.cancel();
-          feedbackSpeaking = false;
-          feedbackSpeechQueue = [];
-          feedbackSpeechIndex = 0;
-          els.feedbackSpeak.textContent = '피드백 듣기';
-          els.subline.textContent = '피드백 읽기를 정지했습니다.';
+          stopFeedbackAudio('피드백 읽기를 정지했습니다.');
           return;
         }
-        window.speechSynthesis.cancel();
-        window.speechSynthesis.resume();
-        feedbackSpeechQueue = splitSpeechText(lastFeedbackText || '아직 들을 피드백이 없습니다.');
-        feedbackSpeechIndex = 0;
-        speakFeedbackChunk();
-      }
-      function splitSpeechText(text) {
-        const parts = String(text || '').replace(/\s+/g, ' ').split(/(?=\b(?:EN|KR)\s*\d+[\).:]|\b(?:English|Korean)\s*\d+[\).:]|영어\s*\d+[\).:]|한국어\s*\d+[\).:])/i).map(function (x) { return x.trim(); }).filter(Boolean);
-        const chunks = [];
-        let current = '';
-        parts.forEach(function (part) {
-          const lang = detectFeedbackLang(part);
-          if (part.length > 260) {
-            if (current) { chunks.push({ text: current, lang: detectFeedbackLang(current) }); current = ''; }
-            part.split(/(?:\.\s+|!\s+|\?\s+|。\s+)/).map(function (x) { return x.trim(); }).filter(Boolean).forEach(function (sentence) {
-              chunks.push({ text: sentence, lang: lang });
-            });
-            return;
-          }
-          if ((current + ' ' + part).trim().length > 240 && current) {
-            chunks.push({ text: current, lang: detectFeedbackLang(current) });
-            current = part;
-          } else {
-            current = (current + ' ' + part).trim();
-          }
-        });
-        if (current) chunks.push({ text: current, lang: detectFeedbackLang(current) });
-        return chunks.length ? chunks : [{ text: String(text || ''), lang: detectFeedbackLang(String(text || '')) }];
-      }
-      function detectFeedbackLang(text) {
-        const s = String(text || '').trim();
-        if (/^(KR|Korean|한국어)\s*\d*[\).:]?/i.test(s)) return 'ko-KR';
-        if (/^(EN|English|영어)\s*\d*[\).:]?/i.test(s)) return 'en-US';
-        const koreanChars = (s.match(/[가-힣]/g) || []).length;
-        const englishChars = (s.match(/[A-Za-z]/g) || []).length;
-        return koreanChars > englishChars * 0.35 ? 'ko-KR' : 'en-US';
-      }
-      function speakFeedbackChunk() {
-        if (!feedbackSpeechQueue.length || feedbackSpeechIndex >= feedbackSpeechQueue.length) {
-          feedbackSpeaking = false;
-          els.feedbackSpeak.textContent = '피드백 듣기';
-          els.subline.textContent = '피드백 읽기가 끝났습니다.';
+        const text = String(lastFeedbackText || '').trim();
+        if (!text || text === '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.') {
+          els.subline.textContent = '아직 읽을 피드백이 없습니다. 답변을 종료하면 피드백이 만들어집니다.';
           return;
         }
-        const chunk = feedbackSpeechQueue[feedbackSpeechIndex];
-        const u = new SpeechSynthesisUtterance(chunk.text);
-        u.lang = chunk.lang;
-        u.rate = chunk.lang === 'en-US' ? 0.88 : 0.95;
-        u.volume = 1;
-        const voice = chunk.lang === 'en-US' ? getEnglishVoice() : getKoreanVoice();
-        if (voice) u.voice = voice;
-        u.onstart = function () {
-          feedbackSpeaking = true;
-          els.feedbackSpeak.textContent = '피드백 정지';
-          els.subline.textContent = '피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다. (' + (feedbackSpeechIndex + 1) + '/' + feedbackSpeechQueue.length + ')';
-        };
-        u.onend = function () {
+        stopFeedbackAudio();
+        feedbackSpeaking = true;
+        els.feedbackSpeak.textContent = '피드백 정지';
+        setStatus('OpenAI 피드백 음성 생성 중', true);
+        els.subline.textContent = '자연스러운 피드백 음성을 만드는 중입니다.';
+        try {
+          const response = await fetch('/api/speak', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ text: text })
+          });
+          const data = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(data.error || 'OpenAI feedback speech failed.');
           if (!feedbackSpeaking) return;
-          feedbackSpeechIndex += 1;
-          setTimeout(function () {
-            if (feedbackSpeaking) speakFeedbackChunk();
-          }, 180);
-        };
-        u.onerror = function () {
-          feedbackSpeaking = false;
-          els.feedbackSpeak.textContent = '피드백 듣기';
-          els.subline.textContent = '피드백 읽기가 중단되었습니다. 다시 누르면 처음부터 읽습니다.';
-        };
-        window.speechSynthesis.speak(u);
+          const blob = base64ToBlob(data.audioBase64, data.mimeType);
+          feedbackAudioUrl = URL.createObjectURL(blob);
+          feedbackAudio = new Audio(feedbackAudioUrl);
+          feedbackAudio.onended = function () {
+            stopFeedbackAudio('피드백 읽기가 끝났습니다.');
+            setStatus('GPT 정밀 피드백 완료', false);
+          };
+          feedbackAudio.onerror = function () {
+            stopFeedbackAudio('피드백 오디오 재생에 실패했습니다. 피드백 듣기를 다시 눌러 주세요.');
+            setStatus('피드백 재생 실패', false);
+          };
+          setStatus('피드백 읽는 중', false);
+          els.subline.textContent = 'OpenAI 음성으로 피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
+          await feedbackAudio.play();
+        } catch (error) {
+          stopFeedbackAudio();
+          setStatus('피드백 음성 준비 완료', false);
+          const message = (error && error.message) ? error.message : '피드백 음성 생성 또는 재생에 실패했습니다.';
+          if (/play\(\)|user|gesture|interact|NotAllowed/i.test(message)) {
+            els.subline.textContent = '휴대폰 브라우저가 자동 재생을 막았습니다. 피드백 듣기를 한 번 눌러 주세요.';
+          } else {
+            els.subline.textContent = message;
+          }
+        }
       }
       function clearRecognitionRestart() {
         if (recognitionRestartTimer) clearTimeout(recognitionRestartTimer);
@@ -941,10 +921,7 @@
         clearRecognitionRestart();
         if (mediaStream) { mediaStream.getTracks().forEach(function (track) { track.stop(); }); mediaStream = null; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
-        feedbackSpeaking = false;
-        feedbackSpeechQueue = [];
-        feedbackSpeechIndex = 0;
-        els.feedbackSpeak.textContent = '피드백 듣기';
+        stopFeedbackAudio();
         stopMeter();
         stopClock();
         setStatus('연습 종료', false);
