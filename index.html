@@ -606,6 +606,14 @@
         if (!window.MediaRecorder || !MediaRecorder.isTypeSupported) return '';
         return candidates.find(function (type) { return MediaRecorder.isTypeSupported(type); }) || '';
       }
+      function filenameFromMime(mimeType) {
+        const clean = String(mimeType || '').split(';')[0].toLowerCase();
+        if (clean.includes('mp4')) return 'opic-answer.mp4';
+        if (clean.includes('mpeg') || clean.includes('mp3')) return 'opic-answer.mp3';
+        if (clean.includes('wav')) return 'opic-answer.wav';
+        if (clean.includes('ogg')) return 'opic-answer.ogg';
+        return 'opic-answer.webm';
+      }
       function blobToBase64(blob) {
         return new Promise(function (resolve, reject) {
           const reader = new FileReader();
@@ -647,13 +655,16 @@
           body: JSON.stringify({
             audioBase64: audioBase64,
             mimeType: blob.type || recordingMimeType || 'audio/webm',
-            filename: 'opic-answer.webm',
+            filename: filenameFromMime(blob.type || recordingMimeType || 'audio/webm'),
             prompt: 'This is an English OPIc practice answer by a Korean speaker. The speaker may mention work, home, neighborhood, family, housework, music, concerts, games, cooking, pets, walking, gym, cycling, travel, camping, parks, shopping, SNS, or phones. Transcribe the spoken English accurately. Do not translate into Korean.'
           })
         });
         const data = await response.json().catch(function () { return {}; });
         if (!response.ok) throw new Error(data.error || 'OpenAI transcription failed.');
-        return String(data.text || '').trim();
+        const text = String(data.text || '').trim();
+        if (!text) throw new Error('OpenAI returned an empty transcript. audio=' + Math.round(blob.size / 1024) + 'KB, type=' + (blob.type || recordingMimeType || 'unknown') + ', model=' + (data.model || 'unknown'));
+        if (data.fallbackUsed) els.subline.textContent = '기본 모델이 비어 있어 Whisper fallback으로 인식했습니다.';
+        return text;
       }
       function listen() {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
@@ -690,11 +701,14 @@
             try {
               const blob = new Blob(audioChunks, { type: recordingMimeType });
               if (!blob.size) { finishAnswer('녹음 없음', ''); return; }
+              if (blob.size < 2500) { throw new Error('녹음 파일이 너무 작습니다: ' + blob.size + ' bytes. 답변 시작 후 2초 이상 말한 뒤 종료해 주세요.'); }
               const text = await transcribeBlob(blob);
               finishAnswer('피드백 준비 완료', text);
             } catch (error) {
               setStatus('OpenAI 인식 실패', false);
-              els.subline.textContent = error.message || 'OpenAI 음성 인식에 실패했습니다. Vercel의 OPENAI_API_KEY 설정을 확인해 주세요.';
+              const message = error.message || 'OpenAI 음성 인식에 실패했습니다. Vercel의 OPENAI_API_KEY 설정을 확인해 주세요.';
+              addLog('System', message, false);
+              els.subline.textContent = message;
               finishAnswer('피드백 제한', '');
             }
           };
