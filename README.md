@@ -8,9 +8,9 @@
 2. 답변 시작
 3. 브라우저가 마이크로 답변을 녹음
 4. 종료
-5. 녹음 파일 다운로드
+5. WAV 녹음 파일 다운로드
 6. `ChatGPT 피드백 프롬프트 복사` 버튼 클릭
-7. ChatGPT에 녹음 파일을 업로드하고 프롬프트를 붙여넣어 피드백 받기
+7. ChatGPT에 WAV 녹음 파일을 업로드하고 프롬프트를 붙여넣어 피드백 받기
 
 ## 장점
 
@@ -29,4 +29,5 @@ https://lood34970-afk.github.io/opic-ih-voice-coach/
 
 ## 주의
 
-이 앱 안에서는 자동 transcript를 만들지 않습니다. 정확한 transcript와 피드백은 ChatGPT에 녹음 파일을 업로드해서 받는 방식입니다.
+이 앱 안에서는 자동 transcript를 만들지 않습니다. 정확한 transcript와 피드백은 ChatGPT에 WAV 녹음 파일을 업로드해서 받는 방식입니다.
+

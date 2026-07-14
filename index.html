@@ -113,7 +113,7 @@
           <button id="oiv-stop" type="button" class="btn btn-ghost">종료</button>
         </div>
         <div class="viz-row oiv-record-actions" aria-label="녹음 저장과 피드백 요청">
-          <a id="oiv-download" class="btn" href="#" download="opic-answer.webm" hidden>녹음 파일 다운로드</a>
+          <a id="oiv-download" class="btn" href="#" download="opic-answer.wav" hidden>WAV 녹음 파일 다운로드</a>
           <button id="oiv-copy-prompt" type="button" class="btn" hidden>ChatGPT 피드백 프롬프트 복사</button>
         </div>
       </section>
@@ -593,7 +593,7 @@
         const target = Number(els.length.value);
         const elapsed = startedAt ? Math.floor((Date.now() - startedAt) / 1000) : 0;
         if (!window.MediaRecorder) tips.push('브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
-        if (!text) { tips.push('녹음 파일을 ChatGPT에 업로드하고, 생성된 프롬프트를 함께 붙여넣어 transcript와 IH 피드백을 받아보세요.'); tips.push('셀프 체크: 답변이 75초 이상인지, 구체 예시가 있는지, 마지막에 감정/결론이 있는지 확인하세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
+        if (!text) { tips.push('WAV 녹음 파일을 ChatGPT에 업로드하고, 생성된 프롬프트를 함께 붙여넣어 transcript와 IH 피드백을 받아보세요.'); tips.push('셀프 체크: 답변이 75초 이상인지, 구체 예시가 있는지, 마지막에 감정/결론이 있는지 확인하세요.'); tips.push('IH 목표: 실제처럼 같은 주제 5연속 질문에 75~120초로 구조 있게 답하기.'); }
         if (text) {
           if (elapsed < Math.max(55, target - 35)) tips.push('조금 짧습니다. 예시나 개인 감정을 한 덩어리 더 넣어 보세요.');
           if (!/because|so|that is why|for example|actually|in the end/.test(lower)) tips.push('IH 답변에는 because, for example, in the end 같은 연결어가 필요합니다.');
@@ -623,6 +623,52 @@
         if (clean.includes('ogg')) return 'opic-answer.ogg';
         return 'opic-answer.webm';
       }
+      function audioBufferToWav(audioBuffer) {
+        const numberOfChannels = audioBuffer.numberOfChannels;
+        const sampleRate = audioBuffer.sampleRate;
+        const length = audioBuffer.length * numberOfChannels * 2;
+        const buffer = new ArrayBuffer(44 + length);
+        const view = new DataView(buffer);
+        function writeString(offset, value) {
+          for (let i = 0; i < value.length; i += 1) view.setUint8(offset + i, value.charCodeAt(i));
+        }
+        let offset = 0;
+        writeString(offset, 'RIFF'); offset += 4;
+        view.setUint32(offset, 36 + length, true); offset += 4;
+        writeString(offset, 'WAVE'); offset += 4;
+        writeString(offset, 'fmt '); offset += 4;
+        view.setUint32(offset, 16, true); offset += 4;
+        view.setUint16(offset, 1, true); offset += 2;
+        view.setUint16(offset, numberOfChannels, true); offset += 2;
+        view.setUint32(offset, sampleRate, true); offset += 4;
+        view.setUint32(offset, sampleRate * numberOfChannels * 2, true); offset += 4;
+        view.setUint16(offset, numberOfChannels * 2, true); offset += 2;
+        view.setUint16(offset, 16, true); offset += 2;
+        writeString(offset, 'data'); offset += 4;
+        view.setUint32(offset, length, true); offset += 4;
+        const channels = [];
+        for (let channel = 0; channel < numberOfChannels; channel += 1) channels.push(audioBuffer.getChannelData(channel));
+        for (let i = 0; i < audioBuffer.length; i += 1) {
+          for (let channel = 0; channel < numberOfChannels; channel += 1) {
+            const sample = Math.max(-1, Math.min(1, channels[channel][i]));
+            view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+            offset += 2;
+          }
+        }
+        return new Blob([buffer], { type: 'audio/wav' });
+      }
+      async function convertRecordingToWav(blob) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContextClass) return blob;
+        const arrayBuffer = await blob.arrayBuffer();
+        const context = new AudioContextClass();
+        try {
+          const audioBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
+          return audioBufferToWav(audioBuffer);
+        } finally {
+          if (context.close) context.close();
+        }
+      }
       function buildFeedbackPrompt() {
         const q = lastQuestion || 'No question text was captured.';
         const target = els.length.value || '100';
@@ -634,7 +680,7 @@
           'Question: ' + q,
           '',
           'Please do the following:',
-          '1. Transcribe my spoken English accurately. Do not translate it into Korean first.',
+          '1. Transcribe the uploaded WAV audio accurately. Do not translate it into Korean first.',
           '2. Evaluate whether the answer sounds like OPIc IH level.',
           '3. Give feedback on structure, fluency, grammar, vocabulary, and specificity.',
           '4. Point out awkward expressions and give better natural alternatives.',
@@ -646,9 +692,10 @@
         if (recordedUrl) URL.revokeObjectURL(recordedUrl);
         recordedBlob = blob;
         recordedUrl = URL.createObjectURL(blob);
-        const filename = filenameFromMime(blob.type || recordingMimeType || 'audio/webm');
+        const filename = (blob.type || '').includes('wav') ? 'opic-answer.wav' : filenameFromMime(blob.type || recordingMimeType || 'audio/webm');
         els.download.href = recordedUrl;
         els.download.download = filename;
+        els.download.textContent = (blob.type || '').includes('wav') ? 'WAV 녹음 파일 다운로드' : '녹음 파일 다운로드';
         els.download.hidden = false;
         lastPromptText = buildFeedbackPrompt();
         els.copyPrompt.hidden = false;
@@ -666,9 +713,9 @@
         updateQuestionButton();
         if (blob && blob.size) {
           exposeRecording(blob);
-          addLog('System', 'Recording saved. Download it and upload it to ChatGPT with the generated feedback prompt.', false);
+          addLog('System', 'Recording saved. Download the WAV file and upload it to ChatGPT with the generated feedback prompt.', false);
           renderFeedback('');
-          els.subline.textContent = '녹음 파일을 다운로드한 뒤 ChatGPT에 업로드하고, 피드백 프롬프트를 함께 붙여넣으세요.';
+          els.subline.textContent = 'WAV 녹음 파일을 다운로드한 뒤 ChatGPT에 업로드하고, 피드백 프롬프트를 함께 붙여넣으세요.';
         } else {
           renderFeedback('');
           els.subline.textContent = '녹음 파일이 만들어지지 않았습니다. 마이크 권한을 확인하고 다시 시도해 주세요.';
@@ -707,13 +754,22 @@
           catch (error) { mediaRecorder = new MediaRecorder(stream); }
           mediaRecorder.ondataavailable = function (event) { if (event.data && event.data.size > 0) audioChunks.push(event.data); };
           mediaRecorder.onerror = function () { finishAnswer('녹음 오류', null); };
-          mediaRecorder.onstop = function () {
+          mediaRecorder.onstop = async function () {
             stopMeter();
             stopClock();
             if (mediaStream) mediaStream.getTracks().forEach(function (track) { track.stop(); });
             mediaStream = null;
-            const blob = new Blob(audioChunks, { type: recordingMimeType });
-            finishAnswer(blob.size ? '녹음 저장 완료' : '녹음 없음', blob);
+            const rawBlob = new Blob(audioChunks, { type: recordingMimeType });
+            if (!rawBlob.size) { finishAnswer('녹음 없음', rawBlob); return; }
+            setStatus('WAV 변환 중', true);
+            els.subline.textContent = 'ChatGPT가 더 잘 알아듣도록 녹음을 WAV 파일로 변환하는 중입니다.';
+            try {
+              const wavBlob = await convertRecordingToWav(rawBlob);
+              finishAnswer('WAV 저장 완료', wavBlob);
+            } catch (error) {
+              addLog('System', 'WAV conversion failed, so the original recording format was saved instead: ' + (error.message || error), false);
+              finishAnswer('녹음 저장 완료', rawBlob);
+            }
           };
           mediaRecorder.start(1000);
           startMeter();
