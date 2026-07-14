@@ -592,9 +592,34 @@
       function hasAny(text, words) {
         return words.some(function (word) { return text.indexOf(word) !== -1; });
       }
+      function grammarIssues(lower) {
+        const issues = [];
+        function add(pattern, message) {
+          if (issues.length < 5 && pattern.test(lower)) issues.push(message);
+        }
+        add(/\bi am go\b|\bi was go\b/, '문법: "I am go / I was go"처럼 be동사 뒤에 동사원형이 오면 어색합니다. 현재는 "I am going", 과거는 "I went"로 말하세요.');
+        add(/\b(he|she|my mother|my father|my friend|my brother|my sister) go\b/, '문법: 3인칭 단수 현재는 동사에 -s가 필요합니다. 예: "She goes there", "My friend likes it".');
+        add(/\bpeople is\b|\bmy family are\b/, '문법: 수일치를 확인하세요. 보통 "people are", 가족을 한 단위로 말하면 "my family is"가 자연스럽습니다.');
+        add(/\bthere is many\b|\bthere is a lot of [a-z]+s\b/, '문법: 복수 명사에는 "there are"를 쓰세요. 예: "There are many parks near my home."');
+        add(/\blisten music\b/, '문법: "listen music"이 아니라 "listen to music"입니다. listen 뒤에는 보통 to가 필요합니다.');
+        add(/\bdiscuss about\b/, '문법: discuss는 about 없이 바로 목적어를 씁니다. 예: "We discussed the problem."');
+        add(/\bmarried with\b/, '문법: 결혼 상태는 보통 "married to"를 씁니다. 예: "She is married to him."');
+        add(/\bevery weekends\b|\bevery mornings\b|\bevery nights\b/, '문법: every 뒤에는 단수 명사가 자연스럽습니다. 예: "every weekend", "every morning".');
+        add(/\bmany information\b|\bmany furniture\b|\bmany equipment\b|\bmany advice\b/, '문법: information/furniture/equipment/advice는 셀 수 없는 명사라 "much" 또는 "a lot of"가 더 자연스럽습니다.');
+        add(/\bmuch people\b|\bmuch things\b|\bmuch places\b/, '문법: 셀 수 있는 복수 명사에는 much보다 many를 씁니다. 예: "many people", "many places".');
+        add(/\bi very like\b/, '문법: "I very like"보다 "I really like" 또는 "I like it very much"가 자연스럽습니다.');
+        add(/\bmore better\b|\bmore easier\b|\bmore faster\b/, '문법: 비교급 앞에는 보통 more를 또 붙이지 않습니다. "better", "easier", "faster"만 쓰세요.');
+        add(/\bhomeworks\b|\bfurnitures\b|\bequipments\b|\binformations\b|\badvices\b/, '문법: homework/furniture/equipment/information/advice는 보통 복수형 -s를 붙이지 않습니다.');
+        add(/\bi have been to there\b|\bi went to there\b/, '문법: there/here/home 앞에는 to를 빼는 경우가 많습니다. 예: "I went there", "I came home".');
+        if (/(yesterday|last year|last month|last weekend|ago|when i was)/.test(lower) && /\bi go\b|\bi eat\b|\bi see\b|\bi meet\b|\bi buy\b/.test(lower)) {
+          issues.push('문법: 과거 경험을 말할 때 현재형이 섞였을 수 있습니다. yesterday/last/ago가 나오면 "went, ate, saw, met, bought"처럼 과거형을 우선 확인하세요.');
+        }
+        return issues.slice(0, 5);
+      }
       function renderFeedback(text) {
         const tips = [];
         const positives = [];
+        const grammar = [];
         const words = text.trim() ? text.trim().split(/\s+/).filter(Boolean).length : 0;
         const lower = text.toLowerCase();
         const target = Number(els.length.value);
@@ -611,10 +636,12 @@
           tips.push('첫 문장 템플릿: "I usually..." 또는 "Let me talk about..."로 바로 시작하면 인식과 답변 흐름이 둘 다 좋아집니다.');
         }
         if (text) {
+          grammarIssues(lower).forEach(function (issue) { grammar.push(issue); });
           positives.push('분량: ' + words + '단어' + (elapsed ? ' / 약 ' + elapsed + '초' : '') + (wpm ? ' / ' + wpm + ' WPM' : '') + '입니다.');
           if (words >= 95) positives.push('강점: IH 답변으로 확장 가능한 길이입니다. 이제 구조와 에피소드 선명도를 다듬으면 좋습니다.');
           if (connectorCount >= 3) positives.push('강점: 연결어가 어느 정도 들어가서 답변이 끊긴 단어 나열처럼 들리지 않습니다.');
           if (detailCount >= 3) positives.push('강점: 시간, 장소, 빈도, 상황 단서가 보여서 개인화된 답변으로 들립니다.');
+          if (!grammar.length && words >= 55) positives.push('문법: 앱이 잡을 수 있는 기본 문법 패턴에서는 큰 오류가 보이지 않습니다. 다만 세부 교정은 실제 transcript를 보며 추가 확인하면 좋습니다.');
           if (words < 55) tips.push('분량: 너무 짧습니다. IH 목표라면 최소 80~120단어 정도로 늘려 보세요. 이유 1개, 구체 예시 1개, 감정 1개를 추가하면 됩니다.');
           else if (elapsed && elapsed < Math.max(55, target - 35)) tips.push('시간: 목표보다 짧습니다. 마지막에 "What I learned was..." 또는 "That is why I still remember it." 같은 마무리를 붙여 보세요.');
           if (wpm && wpm > 150) tips.push('속도: 약간 빠를 수 있습니다. IH에서는 빠른 속도보다 또렷한 끊어 말하기가 유리합니다. 문장 사이에 0.5초 쉬어 주세요.');
@@ -628,8 +655,8 @@
           tips.push('다음 답변 목표: 시작 1문장 → 구체 상황 2문장 → 작은 에피소드 3문장 → 감정/의견 2문장 → 마무리 1문장으로 답해 보세요.');
         }
         els.feedback.innerHTML = '';
-        positives.concat(tips).slice(0, 8).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
-        lastFeedbackText = positives.concat(tips).join(' ');
+        positives.concat(grammar).concat(tips).slice(0, 10).forEach(function (tip) { const li = document.createElement('li'); li.textContent = tip; els.feedback.appendChild(li); });
+        lastFeedbackText = positives.concat(grammar).concat(tips).join(' ');
       }
       function speakFeedback() {
         if (!('speechSynthesis' in window)) {
