@@ -10,9 +10,7 @@
       return res.status(500).json({ error: 'OPENAI_API_KEY is not configured on the server.' });
     }
 
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const body = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+    const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const audioBase64 = body.audioBase64;
     const mimeType = body.mimeType || 'audio/webm';
     const filename = body.filename || filenameFromMime(mimeType);
@@ -88,9 +86,3 @@ function filenameFromMime(mimeType) {
   if (clean.includes('webm')) return 'opic-answer.webm';
   return 'opic-answer.webm';
 }
-
-export const config = {
-  api: {
-    bodyParser: false
-  }
-};
