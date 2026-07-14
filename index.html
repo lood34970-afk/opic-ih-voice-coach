@@ -428,6 +428,7 @@
       let currentSetQueue = [];
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
+      let feedbackSpeaking = false;
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
         const keys = topicKeys();
@@ -508,6 +509,8 @@
           null;
       }
       function speakNow(text) {
+        feedbackSpeaking = false;
+        els.feedbackSpeak.textContent = '피드백 듣기';
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
         currentUtterance = new SpeechSynthesisUtterance(text);
@@ -633,6 +636,13 @@
           els.subline.textContent = '이 브라우저는 피드백 음성 읽기를 지원하지 않습니다.';
           return;
         }
+        if (feedbackSpeaking) {
+          window.speechSynthesis.cancel();
+          feedbackSpeaking = false;
+          els.feedbackSpeak.textContent = '피드백 듣기';
+          els.subline.textContent = '피드백 읽기를 정지했습니다.';
+          return;
+        }
         window.speechSynthesis.cancel();
         window.speechSynthesis.resume();
         const u = new SpeechSynthesisUtterance(lastFeedbackText || '아직 들을 피드백이 없습니다.');
@@ -642,6 +652,19 @@
         const voices = window.speechSynthesis.getVoices ? window.speechSynthesis.getVoices() : [];
         const koVoice = voices.find(function (v) { return /^ko/i.test(v.lang); });
         if (koVoice) u.voice = koVoice;
+        u.onstart = function () {
+          feedbackSpeaking = true;
+          els.feedbackSpeak.textContent = '피드백 정지';
+          els.subline.textContent = '피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
+        };
+        u.onend = function () {
+          feedbackSpeaking = false;
+          els.feedbackSpeak.textContent = '피드백 듣기';
+        };
+        u.onerror = function () {
+          feedbackSpeaking = false;
+          els.feedbackSpeak.textContent = '피드백 듣기';
+        };
         window.speechSynthesis.speak(u);
       }
       function clearRecognitionRestart() {
@@ -784,6 +807,8 @@
         clearRecognitionRestart();
         if (mediaStream) { mediaStream.getTracks().forEach(function (track) { track.stop(); }); mediaStream = null; }
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+        feedbackSpeaking = false;
+        els.feedbackSpeak.textContent = '피드백 듣기';
         stopMeter();
         stopClock();
         setStatus('연습 종료', false);
