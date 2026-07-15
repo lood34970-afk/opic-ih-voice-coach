@@ -43,7 +43,7 @@
     #opic-ih-voice-coach .oiv-bubble { padding: 0.65rem 0.75rem; border-radius: 0.85rem; background: var(--muted); color: var(--foreground); }
     #opic-ih-voice-coach .oiv-bubble.user { background: color-mix(in srgb, var(--viz-series-1) 14%, var(--muted)); }
     #opic-ih-voice-coach .oiv-bubble strong { font-weight: 500; }
-    #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
     #opic-ih-voice-coach .oiv-feedback-head { display: flex; gap: 0.55rem; align-items: center; justify-content: space-between; }
     #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
     #opic-ih-voice-coach #oiv-feedback li { white-space: pre-line; }
@@ -124,10 +124,6 @@
       <section class="card">
         <div class="text-small text-muted">IH 답변 골격</div>
         <ul id="oiv-structure" class="oiv-mini-list"></ul>
-      </section>
-      <section class="card">
-        <div class="text-small text-muted">쓸 만한 연결어</div>
-        <ul id="oiv-connectors" class="oiv-mini-list"></ul>
       </section>
       <section class="card">
         <div class="oiv-feedback-head">
@@ -400,7 +396,7 @@
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
         question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
-        structure: root.querySelector('#oiv-structure'), connectors: root.querySelector('#oiv-connectors'), feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
+        structure: root.querySelector('#oiv-structure'), feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -499,9 +495,8 @@
       function addLog(name, text, user) { const div = document.createElement('div'); div.className = 'oiv-bubble' + (user ? ' user' : ''); div.innerHTML = '<strong>' + safe(name) + '</strong><br>' + safe(text); els.log.appendChild(div); els.log.scrollTop = els.log.scrollHeight; }
       function renderLists() {
         const t = topic();
-        els.structure.innerHTML = ''; els.connectors.innerHTML = '';
+        els.structure.innerHTML = '';
         t.structure.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; els.structure.appendChild(li); });
-        t.connectors.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; els.connectors.appendChild(li); });
         renderFeedback('');
       }
       function getEnglishVoice() {
