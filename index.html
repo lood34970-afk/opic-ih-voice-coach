@@ -49,6 +49,27 @@
     #opic-ih-voice-coach #oiv-feedback li { white-space: pre-line; }
     #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
     #opic-ih-voice-coach .oiv-mini-list li + li { margin-top: 0.38rem; }
+    #opic-ih-voice-coach .oiv-level-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; }
+    #opic-ih-voice-coach .oiv-level-value { font-size: 1.35rem; font-weight: 500; color: var(--foreground); }
+    #opic-ih-voice-coach .oiv-level-scale { position: relative; height: 6.7rem; margin-top: 0.8rem; display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); align-items: end; gap: 0.3rem; }
+    #opic-ih-voice-coach .oiv-level-column { height: 100%; min-width: 0; display: grid; grid-template-rows: 1fr 1.1rem; align-items: end; gap: 0.3rem; }
+    #opic-ih-voice-coach .oiv-level-column span { width: 100%; height: 1.1rem; border-radius: 0.25rem 0.25rem 0.12rem 0.12rem; background: var(--muted); transition: background 180ms ease; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(2) span { height: 1.45rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(3) span { height: 1.8rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(4) span { height: 2.15rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(5) span { height: 2.5rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(6) span { height: 2.85rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(7) span { height: 3.2rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(8) span { height: 3.55rem; }
+    #opic-ih-voice-coach .oiv-level-column:nth-child(9) span { height: 3.9rem; }
+    #opic-ih-voice-coach .oiv-level-column.reached span { background: var(--viz-series-1); }
+    #opic-ih-voice-coach .oiv-level-column.current b { color: var(--foreground); text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 0.2rem; }
+    #opic-ih-voice-coach .oiv-level-column b { overflow: hidden; color: var(--muted-foreground); font-size: 0.64rem; font-weight: 500; text-align: center; }
+    #opic-ih-voice-coach .oiv-level-marker { position: absolute; bottom: 1.4rem; width: 2px; height: 4.7rem; border-radius: 2px; background: var(--foreground); transform: translateX(-1px); transition: left 260ms ease; pointer-events: none; }
+    #opic-ih-voice-coach .oiv-level-marker::before { content: ""; position: absolute; top: -0.3rem; left: 50%; width: 0.65rem; height: 0.65rem; border: 2px solid var(--card); border-radius: 50%; background: var(--foreground); transform: translateX(-50%); }
+    #opic-ih-voice-coach .oiv-level-marker[hidden] { display: none; }
+    #opic-ih-voice-coach .oiv-level-meta { margin-top: 0.7rem; color: var(--foreground); }
+    #opic-ih-voice-coach .oiv-level-reason { min-height: 2.5rem; margin: 0.35rem 0 0; color: var(--muted-foreground); }
     @media (max-width: 680px) {
       #opic-ih-voice-coach .oiv-main, #opic-ih-voice-coach .oiv-helper { grid-template-columns: 1fr; }
       #opic-ih-voice-coach .oiv-call { min-height: 14rem; }
@@ -121,14 +142,33 @@
     </div>
 
     <div class="oiv-helper">
-      <section class="card">
-        <div class="text-small text-muted">IH 답변 골격</div>
-        <ul id="oiv-structure" class="oiv-mini-list"></ul>
+      <section class="card" aria-labelledby="oiv-level-title">
+        <div class="oiv-level-head">
+          <div>
+            <div class="text-small text-muted">답변별 자동 추정</div>
+            <div id="oiv-level-title">예상 OPIc 등급</div>
+          </div>
+          <strong id="oiv-level-value" class="oiv-level-value" aria-live="polite">대기 중</strong>
+        </div>
+        <div id="oiv-level-scale" class="oiv-level-scale" role="img" aria-label="답변 후 예상 OPIc 등급이 표시됩니다">
+          <div class="oiv-level-column" data-level="NL"><span></span><b>NL</b></div>
+          <div class="oiv-level-column" data-level="NM"><span></span><b>NM</b></div>
+          <div class="oiv-level-column" data-level="NH"><span></span><b>NH</b></div>
+          <div class="oiv-level-column" data-level="IL"><span></span><b>IL</b></div>
+          <div class="oiv-level-column" data-level="IM1"><span></span><b>IM1</b></div>
+          <div class="oiv-level-column" data-level="IM2"><span></span><b>IM2</b></div>
+          <div class="oiv-level-column" data-level="IM3"><span></span><b>IM3</b></div>
+          <div class="oiv-level-column" data-level="IH"><span></span><b>IH</b></div>
+          <div class="oiv-level-column" data-level="AL"><span></span><b>AL</b></div>
+          <div id="oiv-level-marker" class="oiv-level-marker" aria-hidden="true" hidden></div>
+        </div>
+        <div id="oiv-level-meta" class="oiv-level-meta text-small">첫 답변이 끝나면 자동으로 표시됩니다.</div>
+        <p id="oiv-level-reason" class="oiv-level-reason text-small">실제 OPIc 공식 성적이 아닌 연습용 추정치입니다.</p>
       </section>
       <section class="card">
         <div class="oiv-feedback-head">
           <div class="text-small text-muted">IH 피드백</div>
-          <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">피드백 듣기</button>
+          <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">해설 다시 듣기</button>
         </div>
         <ul id="oiv-feedback"></ul>
       </section>
@@ -147,7 +187,6 @@
             'Describe your workplace. What does it look like, and what do you like or dislike about it?',
             'Tell me about a memorable experience you had at work. What happened, and how did you feel?'
           ],
-          structure: ['직무/회사 한 문장', '하루 루틴', '구체 업무 예시', '느낀 점/마무리'],
           connectors: ['On a typical day...', 'What I usually do is...', 'The most memorable part was...']
         },
         home: {
@@ -157,7 +196,6 @@
             'Describe your room in detail. What do you keep there, and why do you like it?',
             'How has your home changed compared to the place where you lived before?'
           ],
-          structure: ['전체 묘사', '좋아하는 공간', '구체 물건/분위기', '개인 이유'],
           connectors: ['What I like most is...', 'It feels...', 'Compared to before...']
         },
         neighborhood: {
@@ -167,7 +205,6 @@
             'Tell me about a place in your neighborhood that you visit often.',
             'Has your neighborhood changed over the years? Describe the changes.'
           ],
-          structure: ['동네 위치/분위기', '자주 가는 장소', '하는 일', '변화/의견'],
           connectors: ['Near my place...', 'I often go there to...', 'These days...']
         },
         family: {
@@ -177,7 +214,6 @@
             'Describe a memorable time you spent with your family.',
             'How is your family routine different now compared to the past?'
           ],
-          structure: ['가족 구성', '함께 하는 일', '특별한 경험', '감정/변화'],
           connectors: ['We usually...', 'One time...', 'As a result...']
         },
         housework: {
@@ -187,7 +223,6 @@
             'Tell me about a time when doing housework was difficult or annoying.',
             'How do you divide housework with your family?'
           ],
-          structure: ['하는 집안일', '빈도/순서', '어려웠던 점', '해결/느낀 점'],
           connectors: ['First, I usually...', 'The difficult part is...', 'After that...']
         },
         music: {
@@ -197,7 +232,6 @@
             'Tell me about your favorite singer or song. Why do you like it?',
             'Describe a memorable experience related to music.'
           ],
-          structure: ['좋아하는 장르', '듣는 상황', '구체 가수/노래', '기분/이유'],
           connectors: ['I am really into...', 'Whenever I...', 'It makes me feel...']
         },
         concert: {
@@ -207,7 +241,6 @@
             'Describe the atmosphere at a live performance you enjoyed.',
             'Would you rather watch a performance online or in person? Explain why.'
           ],
-          structure: ['언제/어디서', '공연 분위기', '인상 깊은 순간', '개인 의견'],
           connectors: ['The atmosphere was...', 'The best moment was...', 'Personally...']
         },
         game: {
@@ -217,7 +250,6 @@
             'Tell me about a memorable moment you had while playing a game.',
             'How have your gaming habits changed compared to the past?'
           ],
-          structure: ['게임 종류', '플레이 방식', '기억나는 사건', '변화/의견'],
           connectors: ['I usually play...', 'At that time...', 'Compared to before...']
         },
         cooking: {
@@ -227,7 +259,6 @@
             'Tell me about a time when you cooked something successfully or unsuccessfully.',
             'What kind of food would you like to learn to cook? Why?'
           ],
-          structure: ['요리 종류', '과정 설명', '성공/실패 경험', '맛/느낌'],
           connectors: ['The first step is...', 'It turned out...', 'That is why...']
         },
         pet: {
@@ -237,7 +268,6 @@
             'Describe your daily routine with a pet.',
             'Tell me about a funny or memorable moment related to a pet.'
           ],
-          structure: ['반려동물 소개', '성격/특징', '돌보는 루틴', '에피소드'],
           connectors: ['My pet is...', 'Every day, I...', 'One funny thing is...']
         },
         walking: {
@@ -247,7 +277,6 @@
             'Describe your favorite place to walk or jog.',
             'Tell me about a time when you went for a walk and something memorable happened.'
           ],
-          structure: ['운동 장소', '빈도/시간', '좋아하는 이유', '기억나는 경험'],
           connectors: ['I usually go...', 'It helps me...', 'One day...']
         },
         gym: {
@@ -257,7 +286,6 @@
             'Describe the gym you go to. What equipment or facilities does it have?',
             'Tell me about a fitness goal you have and how you are working on it.'
           ],
-          structure: ['헬스장/운동 소개', '루틴 순서', '목표', '변화/효과'],
           connectors: ['My routine starts with...', 'My goal is to...', 'I have noticed that...']
         },
         cycling: {
@@ -267,7 +295,6 @@
             'Describe a memorable cycling experience you had.',
             'Compare cycling with another form of exercise you enjoy.'
           ],
-          structure: ['자전거 타는 장소', '경로/분위기', '사건/경험', '장점 비교'],
           connectors: ['I usually ride along...', 'What happened was...', 'Compared with...']
         },
         domestic: {
@@ -277,7 +304,6 @@
             'Describe a city or place in your country that you recommend visiting.',
             'Tell me about a problem you had while traveling in your country.'
           ],
-          structure: ['장소/시기', '한 일 2개', '좋았던 점', '문제/해결'],
           connectors: ['I went to...', 'The highlight was...', 'Unfortunately...']
         },
         overseas: {
@@ -287,7 +313,6 @@
             'Describe a memorable experience you had while traveling abroad.',
             'Compare traveling abroad with traveling within your country.'
           ],
-          structure: ['나라/도시', '경험/문화 차이', '좋았던 점', '비교/의견'],
           connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
         },
         camping: {
@@ -297,7 +322,6 @@
             'Describe what you need to prepare before going camping.',
             'Tell me about a problem that can happen while camping and how you would solve it.'
           ],
-          structure: ['캠핑 장소', '준비물', '활동', '문제/해결'],
           connectors: ['Before camping...', 'During the trip...', 'If that happens...']
         },
         park: {
@@ -307,7 +331,6 @@
             'What do you usually do at a park?',
             'Tell me about a memorable day you spent at a park.'
           ],
-          structure: ['공원 묘사', '하는 활동', '분위기', '에피소드'],
           connectors: ['There is...', 'People usually...', 'I remember when...']
         },
         shopping: {
@@ -317,7 +340,6 @@
             'Describe a memorable shopping experience, good or bad.',
             'Compare online shopping with shopping in a store.'
           ],
-          structure: ['쇼핑 장소/물건', '빈도', '경험', '온라인/오프라인 비교'],
           connectors: ['I usually buy...', 'One time...', 'The main difference is...']
         },
         sns: {
@@ -327,7 +349,6 @@
             'Tell me about a memorable post or video you saw on social media.',
             'How has social media changed the way people communicate?'
           ],
-          structure: ['사용 앱', '사용 목적', '본 콘텐츠/경험', '의견/변화'],
           connectors: ['I mainly use...', 'I came across...', 'These days...']
         },
         phone: {
@@ -337,7 +358,6 @@
             'Describe an app you use often on your phone and why it is useful.',
             'Tell me about a time when you had a problem with your phone.'
           ],
-          structure: ['휴대폰 사용 목적', '자주 쓰는 앱', '구체 상황', '문제/해결'],
           connectors: ['I use my phone to...', 'The app is useful because...', 'The problem was...']
         }
       };
@@ -396,7 +416,9 @@
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
         question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
-        structure: root.querySelector('#oiv-structure'), feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
+        levelValue: root.querySelector('#oiv-level-value'), levelScale: root.querySelector('#oiv-level-scale'), levelMarker: root.querySelector('#oiv-level-marker'),
+        levelMeta: root.querySelector('#oiv-level-meta'), levelReason: root.querySelector('#oiv-level-reason'),
+        feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -429,6 +451,8 @@
       let feedbackAudio = null;
       let feedbackAudioUrl = '';
       let lastAnswerSeconds = 0;
+      const opicLevels = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
+      let assessmentHistory = [];
       function topicKeys() { return Object.keys(topics); }
       function randomTopicKey() {
         const keys = topicKeys();
@@ -494,10 +518,45 @@
       function setStatus(text, live) { els.status.textContent = text; els.dot.classList.toggle('live', Boolean(live)); }
       function addLog(name, text, user) { const div = document.createElement('div'); div.className = 'oiv-bubble' + (user ? ' user' : ''); div.innerHTML = '<strong>' + safe(name) + '</strong><br>' + safe(text); els.log.appendChild(div); els.log.scrollTop = els.log.scrollHeight; }
       function renderLists() {
-        const t = topic();
-        els.structure.innerHTML = '';
-        t.structure.forEach(function (x) { const li = document.createElement('li'); li.textContent = x; els.structure.appendChild(li); });
         renderFeedback('');
+      }
+      function renderAssessment(assessment) {
+        if (assessment && Number.isFinite(Number(assessment.levelPosition))) {
+          assessmentHistory.push({
+            position: Math.max(0, Math.min(8, Number(assessment.levelPosition))),
+            confidence: Math.max(0, Math.min(100, Number(assessment.confidence) || 0)),
+            reason: String(assessment.reasonKo || '답변의 과제 수행과 전달력을 종합해 추정했습니다.')
+          });
+        }
+        const columns = Array.from(els.levelScale.querySelectorAll('.oiv-level-column'));
+        columns.forEach(function (column) { column.classList.remove('reached', 'current'); });
+        if (!assessmentHistory.length) {
+          els.levelMarker.hidden = true;
+          els.levelValue.textContent = '대기 중';
+          els.levelMeta.textContent = '첫 답변이 끝나면 자동으로 표시됩니다.';
+          els.levelReason.textContent = '실제 OPIc 공식 성적이 아닌 연습용 추정치입니다.';
+          return;
+        }
+        const averagePosition = assessmentHistory.reduce(function (sum, item) { return sum + item.position; }, 0) / assessmentHistory.length;
+        const nearestIndex = Math.round(averagePosition);
+        const lowerIndex = Math.floor(averagePosition);
+        const upperIndex = Math.ceil(averagePosition);
+        const progress = Math.round((averagePosition - lowerIndex) * 100);
+        const confidence = Math.round(assessmentHistory.reduce(function (sum, item) { return sum + item.confidence; }, 0) / assessmentHistory.length);
+        const markerPercent = 5.555 + (averagePosition / 8) * 88.89;
+        columns.forEach(function (column, index) {
+          column.classList.toggle('reached', index <= lowerIndex);
+          column.classList.toggle('current', index === nearestIndex);
+        });
+        els.levelMarker.style.left = markerPercent + '%';
+        els.levelMarker.hidden = false;
+        els.levelValue.textContent = opicLevels[nearestIndex];
+        const positionText = lowerIndex === upperIndex
+          ? opicLevels[nearestIndex] + ' 기준점'
+          : opicLevels[lowerIndex] + ' → ' + opicLevels[upperIndex] + ' ' + progress + '%';
+        els.levelMeta.textContent = positionText + ' · 답변 ' + assessmentHistory.length + '개 · 신뢰도 ' + confidence + '%';
+        els.levelReason.textContent = assessmentHistory[assessmentHistory.length - 1].reason;
+        els.levelScale.setAttribute('aria-label', '현재 예상 OPIc 등급은 ' + opicLevels[nearestIndex] + ', 세부 위치는 ' + positionText + '입니다.');
       }
       function getEnglishVoice() {
         if (!('speechSynthesis' in window)) return null;
@@ -691,6 +750,7 @@
           const data = await response.json().catch(function () { return {}; });
           if (!response.ok) throw new Error(data.error || 'GPT feedback failed.');
           renderFeedbackItems(data.items);
+          renderAssessment(data.assessment);
           setStatus('GPT 정밀 피드백 완료', false);
           els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -712,7 +772,7 @@
         feedbackAudio = null;
         feedbackAudioUrl = '';
         feedbackSpeaking = false;
-        els.feedbackSpeak.textContent = '피드백 듣기';
+        els.feedbackSpeak.textContent = '해설 다시 듣기';
         if (message) els.subline.textContent = message;
       }
       function base64ToBlob(base64, mimeType) {
@@ -733,7 +793,7 @@
         }
         stopFeedbackAudio();
         feedbackSpeaking = true;
-        els.feedbackSpeak.textContent = '피드백 정지';
+        els.feedbackSpeak.textContent = '해설 정지';
         setStatus('OpenAI 피드백 음성 생성 중', true);
         els.subline.textContent = '자연스러운 피드백 음성을 만드는 중입니다.';
         try {
@@ -928,6 +988,7 @@
       els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
+      renderAssessment();
       renderLists();
       if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });
     })();

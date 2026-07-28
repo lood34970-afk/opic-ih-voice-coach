@@ -42,9 +42,13 @@ export default async function handler(req, res) {
               'Give practical feedback, concise but detailed.',
               'Focus on OPIc IH: relevance, structure, detail, grammar, and natural correction of the learner’s own sentences.',
               'Do not provide a full model answer. Instead, correct the learner’s actual wording with before/after examples.',
-              'Return only valid JSON with key items. items must be an array of 8-10 strings.',
-              'The first half must be English feedback only. The second half must be Korean translations of the same feedback in the same order.',
-              'For every correction, the recommended expression after the arrow must remain in English, even inside the Korean translation.'
+              'Return only valid JSON with keys items and assessment. items must be an array of 6-8 English strings.',
+              'assessment must contain level, levelPosition, confidence, and reasonKo.',
+              'Use this continuous levelPosition scale: NL=0, NM=1, NH=2, IL=3, IM1=4, IM2=5, IM3=6, IH=7, AL=8. Decimals are required when the answer falls between levels.',
+              'Choose level as the nearest named level to levelPosition. confidence must be an integer from 0 to 100.',
+              'reasonKo must be one short Korean sentence explaining the strongest evidence and the main limitation.',
+              'Judge task completion, discourse length and organization, grammar, vocabulary, fluency, and specificity conservatively. This is an unofficial practice estimate.',
+              'Every feedback item must be in English only. Do not include Korean translations in items.'
             ].join(' ')
           },
           {
@@ -61,10 +65,10 @@ export default async function handler(req, res) {
               '2. Check relevance to the exact question.',
               '3. Mention 2-4 concrete grammar or wording corrections from the transcript.',
               '4. Use this English correction format: "You said: ... -> Better: ..."',
-              '5. In the Korean translation, use this format: "내 표현: ... -> 추천: [English corrected sentence]" and explain in Korean.',
-              '6. Do NOT write a full model answer. Do NOT replace the learner’s whole answer.',
-              '7. Give 2-3 reusable sentence patterns that are close to what the learner tried to say.',
-              '8. Keep every item useful for the next attempt.'
+              '5. Do NOT write a full model answer. Do NOT replace the learner’s whole answer.',
+              '6. Give 2-3 reusable sentence patterns that are close to what the learner tried to say.',
+              '7. Keep every item useful for the next attempt.',
+              '8. Write all feedback items in English only.'
             ].join('\n')
           }
         ]
@@ -87,11 +91,27 @@ export default async function handler(req, res) {
     try { parsed = JSON.parse(content); } catch { parsed = { items: content.split(/\n+/).filter(Boolean), speechText: content }; }
     const items = Array.isArray(parsed.items) ? parsed.items.map(String).filter(Boolean).slice(0, 10) : [];
     const speechText = items.join(' ');
+    const assessment = normalizeAssessment(parsed.assessment);
 
-    return res.status(200).json({ items, speechText, model });
+    return res.status(200).json({ items, speechText, assessment, model });
   } catch (error) {
     return res.status(500).json({ error: error?.message || 'Feedback server error.' });
   }
+}
+
+function normalizeAssessment(value) {
+  if (!value || typeof value !== 'object') return null;
+  const levels = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
+  const suppliedLevel = String(value?.level || '').toUpperCase();
+  const levelIndex = levels.indexOf(suppliedLevel);
+  const rawPosition = Number(value?.levelPosition);
+  const levelPosition = Number.isFinite(rawPosition)
+    ? Math.max(0, Math.min(8, rawPosition))
+    : Math.max(0, levelIndex);
+  const nearestLevel = levels[Math.round(levelPosition)] || 'NL';
+  const confidence = Math.max(0, Math.min(100, Math.round(Number(value?.confidence) || 0)));
+  const reasonKo = String(value?.reasonKo || '답변의 과제 수행과 전달력을 종합해 추정했습니다.').slice(0, 180);
+  return { level: nearestLevel, levelPosition, confidence, reasonKo };
 }
 
 function normalizeFeedbackModel(value) {
