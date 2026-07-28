@@ -44,7 +44,8 @@
     #opic-ih-voice-coach .oiv-bubble.user { background: color-mix(in srgb, var(--viz-series-1) 14%, var(--muted)); }
     #opic-ih-voice-coach .oiv-bubble strong { font-weight: 500; }
     #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
-    #opic-ih-voice-coach .oiv-feedback-head { display: flex; gap: 0.55rem; align-items: center; justify-content: space-between; }
+    #opic-ih-voice-coach .oiv-feedback-head { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; justify-content: space-between; }
+    #opic-ih-voice-coach .oiv-feedback-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
     #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
     #opic-ih-voice-coach #oiv-feedback li { white-space: pre-line; }
     #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
@@ -168,7 +169,10 @@
       <section class="card">
         <div class="oiv-feedback-head">
           <div class="text-small text-muted">IH 피드백</div>
-          <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">해설 다시 듣기</button>
+          <div class="oiv-feedback-actions">
+            <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">해설 다시 듣기</button>
+            <button id="oiv-model-speak" type="button" class="btn btn-ghost text-small" disabled>모범답변 듣기</button>
+          </div>
         </div>
         <ul id="oiv-feedback"></ul>
       </section>
@@ -418,7 +422,8 @@
         question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
         levelValue: root.querySelector('#oiv-level-value'), levelScale: root.querySelector('#oiv-level-scale'), levelMarker: root.querySelector('#oiv-level-marker'),
         levelMeta: root.querySelector('#oiv-level-meta'), levelReason: root.querySelector('#oiv-level-reason'),
-        feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak')
+        feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak'),
+        modelSpeak: root.querySelector('#oiv-model-speak')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -447,7 +452,9 @@
       let currentSetQueue = [];
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
+      let lastModelAnswer = '';
       let feedbackSpeaking = false;
+      let audioMode = '';
       let feedbackAudio = null;
       let feedbackAudioUrl = '';
       let lastAnswerSeconds = 0;
@@ -635,6 +642,8 @@
         }
         const picked = pickQuestion();
         const t = topic();
+        lastModelAnswer = '';
+        els.modelSpeak.disabled = true;
         questionIndex += 1;
         renderLists();
         questionCanAdvance = false;
@@ -732,6 +741,8 @@
       }
       async function requestDetailedFeedback(answer) {
         if (!answer) return;
+        lastModelAnswer = '';
+        els.modelSpeak.disabled = true;
         setStatus('GPT 정밀 피드백 생성 중', true);
         renderFeedbackItems(['GPT가 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조를 정밀 분석하는 중입니다.']);
         els.subline.textContent = '정밀 피드백이 생성되면 자동으로 읽어 줍니다.';
@@ -751,6 +762,8 @@
           if (!response.ok) throw new Error(data.error || 'GPT feedback failed.');
           renderFeedbackItems(data.items);
           renderAssessment(data.assessment);
+          lastModelAnswer = String(data.modelAnswer || '').trim();
+          els.modelSpeak.disabled = !lastModelAnswer;
           setStatus('GPT 정밀 피드백 완료', false);
           els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -772,7 +785,9 @@
         feedbackAudio = null;
         feedbackAudioUrl = '';
         feedbackSpeaking = false;
+        audioMode = '';
         els.feedbackSpeak.textContent = '해설 다시 듣기';
+        els.modelSpeak.textContent = '모범답변 듣기';
         if (message) els.subline.textContent = message;
       }
       function base64ToBlob(base64, mimeType) {
@@ -782,7 +797,7 @@
         return new Blob([bytes], { type: mimeType || 'audio/mpeg' });
       }
       async function speakFeedback() {
-        if (feedbackSpeaking) {
+        if (feedbackSpeaking && audioMode === 'feedback') {
           stopFeedbackAudio('피드백 읽기를 정지했습니다.');
           return;
         }
@@ -791,40 +806,58 @@
           els.subline.textContent = '아직 읽을 피드백이 없습니다. 답변을 종료하면 피드백이 만들어집니다.';
           return;
         }
+        await speakCoachText(text, 'feedback');
+      }
+      async function speakModelAnswer() {
+        if (feedbackSpeaking && audioMode === 'modelAnswer') {
+          stopFeedbackAudio('모범답변 재생을 정지했습니다.');
+          return;
+        }
+        const text = String(lastModelAnswer || '').trim();
+        if (!text) {
+          els.subline.textContent = '답변을 종료하면 이 질문의 모범답변이 만들어집니다.';
+          return;
+        }
+        await speakCoachText(text, 'modelAnswer');
+      }
+      async function speakCoachText(text, mode) {
         stopFeedbackAudio();
         feedbackSpeaking = true;
-        els.feedbackSpeak.textContent = '해설 정지';
-        setStatus('OpenAI 피드백 음성 생성 중', true);
-        els.subline.textContent = '자연스러운 피드백 음성을 만드는 중입니다.';
+        audioMode = mode;
+        const isModel = mode === 'modelAnswer';
+        if (isModel) els.modelSpeak.textContent = '모범답변 정지';
+        else els.feedbackSpeak.textContent = '해설 정지';
+        setStatus(isModel ? '모범답변 음성 생성 중' : 'OpenAI 피드백 음성 생성 중', true);
+        els.subline.textContent = isModel ? '이 질문의 IH 모범답변 음성을 만드는 중입니다.' : '자연스러운 피드백 음성을 만드는 중입니다.';
         try {
           const response = await fetch('/api/speak', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ text: text })
+            body: JSON.stringify({ text: text, mode: mode })
           });
           const data = await response.json().catch(function () { return {}; });
-          if (!response.ok) throw new Error(data.error || 'OpenAI feedback speech failed.');
-          if (!feedbackSpeaking) return;
+          if (!response.ok) throw new Error(data.error || 'OpenAI speech failed.');
+          if (!feedbackSpeaking || audioMode !== mode) return;
           const blob = base64ToBlob(data.audioBase64, data.mimeType);
           feedbackAudioUrl = URL.createObjectURL(blob);
           feedbackAudio = new Audio(feedbackAudioUrl);
           feedbackAudio.onended = function () {
-            stopFeedbackAudio('피드백 읽기가 끝났습니다.');
+            stopFeedbackAudio(isModel ? '모범답변 재생이 끝났습니다.' : '피드백 읽기가 끝났습니다.');
             setStatus('GPT 정밀 피드백 완료', false);
           };
           feedbackAudio.onerror = function () {
-            stopFeedbackAudio('피드백 오디오 재생에 실패했습니다. 피드백 듣기를 다시 눌러 주세요.');
-            setStatus('피드백 재생 실패', false);
+            stopFeedbackAudio(isModel ? '모범답변 재생에 실패했습니다. 다시 눌러 주세요.' : '피드백 오디오 재생에 실패했습니다. 다시 눌러 주세요.');
+            setStatus('음성 재생 실패', false);
           };
-          setStatus('피드백 읽는 중', false);
-          els.subline.textContent = 'OpenAI 음성으로 피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
+          setStatus(isModel ? '모범답변 듣는 중' : '피드백 읽는 중', false);
+          els.subline.textContent = isModel ? 'IH 수준 모범답변을 읽는 중입니다. 한 번 더 누르면 정지합니다.' : 'OpenAI 음성으로 피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
           await feedbackAudio.play();
         } catch (error) {
           stopFeedbackAudio();
-          setStatus('피드백 음성 준비 완료', false);
-          const message = (error && error.message) ? error.message : '피드백 음성 생성 또는 재생에 실패했습니다.';
+          setStatus('음성 준비 완료', false);
+          const message = (error && error.message) ? error.message : '음성 생성 또는 재생에 실패했습니다.';
           if (/play\(\)|user|gesture|interact|NotAllowed/i.test(message)) {
-            els.subline.textContent = '휴대폰 브라우저가 자동 재생을 막았습니다. 피드백 듣기를 한 번 눌러 주세요.';
+            els.subline.textContent = '휴대폰 브라우저가 자동 재생을 막았습니다. 듣기 버튼을 한 번 눌러 주세요.';
           } else {
             els.subline.textContent = message;
           }
@@ -985,7 +1018,8 @@
       els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.stop.addEventListener('click', stop);
       els.feedbackSpeak.addEventListener('click', speakFeedback);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
+      els.modelSpeak.addEventListener('click', speakModelAnswer);
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       renderAssessment();

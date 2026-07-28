@@ -12,6 +12,7 @@ export default async function handler(req, res) {
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
     const input = String(body.text || '').trim().slice(0, 3600);
+    const mode = body.mode === 'modelAnswer' ? 'modelAnswer' : 'feedback';
     if (!input) {
       return res.status(400).json({ error: 'text is required.' });
     }
@@ -30,7 +31,9 @@ export default async function handler(req, res) {
         input,
         response_format: 'mp3',
         speed: normalizeSpeed(process.env.OPENAI_TTS_SPEED),
-        instructions: 'Speak like a calm OPIc coach at a slower, comfortable study pace. Use clear American English for English feedback and natural Korean for Korean explanations. Pause briefly between feedback bullets.'
+        instructions: mode === 'modelAnswer'
+          ? 'Speak this OPIc sample answer as one natural response in clear American English. Use a calm, conversational pace with realistic pauses and intonation.'
+          : 'Speak like a calm OPIc coach at a slower, comfortable study pace. Use clear American English and pause briefly between feedback points.'
       })
     });
 
