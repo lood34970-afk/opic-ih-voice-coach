@@ -117,7 +117,7 @@
       <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
         <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
         <div>
-          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 내 설문에 맞춘 325문항에서 실제처럼 한 주제 5연속 질문이 나옵니다.</div>
+          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 내 설문에 맞춘 325문항에서 실제처럼 한 주제 3연속 질문이 나옵니다.</div>
           <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
         </div>
         <div class="oiv-time" id="oiv-time">00:00</div>
@@ -431,11 +431,9 @@
       }
       function buildRealisticSet(topicKey) {
         return [
-          chooseFromRange(topicKey, 0, 4),
-          chooseFromRange(topicKey, 5, 9),
-          chooseFromRange(topicKey, 10, 14),
-          chooseFromRange(topicKey, 15, 19),
-          chooseFromRange(topicKey, 20, 24)
+          chooseFromRange(topicKey, 0, 12),
+          chooseFromRange(topicKey, 13, 17),
+          chooseFromRange(topicKey, 18, 24)
         ];
       }
       function pickQuestion() {
@@ -592,7 +590,7 @@
         answerHasStarted = false;
         updateQuestionButton();
         speak(picked.question);
-        els.subline.textContent = (els.topic.value === 'random' ? '실전 세트 ' + (5 - picked.remainingInSet) + '/5 · ' : '25문항 랜덤 · ') + t.label;
+        els.subline.textContent = (els.topic.value === 'random' ? '실전 세트 ' + (3 - picked.remainingInSet) + '/3 · ' : '25문항 랜덤 · ') + t.label;
       }
       function startMeter() { stopMeter(); meterTimer = setInterval(function () { els.meter.style.width = (18 + Math.round(Math.random() * 78)) + '%'; }, 150); }
       function stopMeter() { if (meterTimer) clearInterval(meterTimer); meterTimer = null; els.meter.style.width = '0%'; }
@@ -645,7 +643,7 @@
         if (!window.MediaRecorder) tips.push('환경: 브라우저 녹음 API가 필요합니다. Android Chrome 또는 최신 Chrome/Edge를 사용해 주세요.');
         if (!text) {
           tips.push('인식: 음성이 충분히 인식되지 않았습니다. 마이크를 입에서 15~25cm 정도 두고 첫 문장을 조금 더 또렷하게 시작해 보세요.');
-          tips.push('목표: 실제 OPIc처럼 같은 주제 5연속 질문에 75~120초로 답하는 연습을 유지하세요.');
+          tips.push('목표: 실제 OPIc처럼 같은 주제 3연속 질문에 75~120초로 답하는 연습을 유지하세요.');
           tips.push('첫 문장 템플릿: "I usually..." 또는 "Let me talk about..."로 바로 시작하면 인식과 답변 흐름이 둘 다 좋아집니다.');
         }
         if (text) {
