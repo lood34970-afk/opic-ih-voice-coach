@@ -81,32 +81,25 @@
     <div class="oiv-top">
       <div class="oiv-status" aria-live="polite">
         <span id="oiv-dot" class="oiv-dot" aria-hidden="true"></span>
-        <span id="oiv-status">OPIc IH 마이크 연습 대기 중</span>
+        <span id="oiv-status">내 설문 13개 주제 연습 대기 중</span>
       </div>
       <div class="viz-controls" aria-label="OPIc IH 연습 선택">
         <label class="form-label">문제 유형
           <select id="oiv-topic" class="form-select">
-            <option value="random" selected>설문 기반 랜덤</option>
-            <option value="worker">직장인</option>
-            <option value="home">집/방</option>
-            <option value="neighborhood">동네</option>
-            <option value="family">가족과 생활</option>
-            <option value="housework">집안일</option>
-            <option value="music">음악 듣기</option>
-            <option value="concert">콘서트/공연</option>
-            <option value="game">게임</option>
-            <option value="cooking">요리</option>
-            <option value="pet">반려동물</option>
-            <option value="walking">걷기/조깅</option>
-            <option value="gym">헬스</option>
-            <option value="cycling">자전거</option>
+            <option value="random" selected>내 설문 기준 랜덤</option>
+            <option value="home">가족과 아파트 거주</option>
+            <option value="movie">영화 보기</option>
+            <option value="park">공원 가기</option>
+            <option value="performance">공연 보기</option>
+            <option value="concert">콘서트 보기</option>
+            <option value="game">게임하기</option>
+            <option value="tv">TV 보기</option>
+            <option value="music">음악 감상</option>
+            <option value="pet">애완동물 키우기</option>
+            <option value="jogging">조깅</option>
+            <option value="walking">걷기</option>
             <option value="domestic">국내 여행</option>
             <option value="overseas">해외 여행</option>
-            <option value="camping">캠핑</option>
-            <option value="park">공원 가기</option>
-            <option value="shopping">쇼핑</option>
-            <option value="sns">SNS</option>
-            <option value="phone">휴대폰 사용</option>
           </select>
         </label>
         <label class="form-label">목표 답변
@@ -117,13 +110,14 @@
           </select>
         </label>
       </div>
+      <div id="oiv-profile" class="text-small text-muted" aria-label="고정 OPIc 설문 조건"></div>
     </div>
 
     <div class="oiv-main">
       <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
         <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
         <div>
-          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 500문항 문제은행에서 실제처럼 한 주제 5연속 질문이 나옵니다.</div>
+          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 내 설문에 맞춘 325문항에서 실제처럼 한 주제 5연속 질문이 나옵니다.</div>
           <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
         </div>
         <div class="oiv-time" id="oiv-time">00:00</div>
@@ -183,188 +177,136 @@
     (function () {
       const root = document.getElementById('opic-ih-voice-coach');
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      const surveyProfile = Object.freeze({
+        employment: '직장 없음',
+        student: '학생 아님',
+        recentClass: '최근 수강 경험 5년 이상 없음',
+        residence: '가족과 아파트 거주'
+      });
+      const allowedTopicKeys = Object.freeze([
+        'home', 'movie', 'park', 'performance', 'concert', 'game', 'tv',
+        'music', 'pet', 'jogging', 'walking', 'domestic', 'overseas'
+      ]);
       const topics = {
-        worker: {
-          label: 'Work',
-          questions: [
-            'Tell me about your job. What kind of work do you do, and what is a typical day like?',
-            'Describe your workplace. What does it look like, and what do you like or dislike about it?',
-            'Tell me about a memorable experience you had at work. What happened, and how did you feel?'
-          ],
-          connectors: ['On a typical day...', 'What I usually do is...', 'The most memorable part was...']
-        },
         home: {
-          label: 'Home and room',
+          label: 'Living with family in an apartment',
           questions: [
-            'Tell me about your home. What does it look like, and what is your favorite part of it?',
-            'Describe your room in detail. What do you keep there, and why do you like it?',
-            'How has your home changed compared to the place where you lived before?'
+            'You said that you live with your family in an apartment. Describe your apartment in detail and tell me about your favorite room.',
+            'What do you and your family usually do together at home? Walk me through a typical day in your apartment.',
+            'Tell me about a memorable experience you had with your family at home. What happened, and why do you remember it?'
           ],
-          connectors: ['What I like most is...', 'It feels...', 'Compared to before...']
+          connectors: ['I live with...', 'What I like most is...', 'At home, we usually...']
         },
-        neighborhood: {
-          label: 'Neighborhood',
+        movie: {
+          label: 'Watching movies',
           questions: [
-            'Describe your neighborhood. What places are nearby, and what do people usually do there?',
-            'Tell me about a place in your neighborhood that you visit often.',
-            'Has your neighborhood changed over the years? Describe the changes.'
+            'What kinds of movies do you enjoy watching? Tell me when, where, and how you usually watch them.',
+            'Tell me about your favorite movie, actor, or director. What makes that person or movie special to you?',
+            'Describe a memorable time when you watched a movie. Who were you with, and what happened?'
           ],
-          connectors: ['Near my place...', 'I often go there to...', 'These days...']
+          connectors: ['I am really into...', 'The movie was about...', 'What I remember most is...']
         },
-        family: {
-          label: 'Family life',
+        park: {
+          label: 'Going to parks',
           questions: [
-            'Tell me about your family. Who do you live with, and what do you usually do together?',
-            'Describe a memorable time you spent with your family.',
-            'How is your family routine different now compared to the past?'
+            'Describe a park you often visit. Where is it, what does it look like, and what can people do there?',
+            'What do you usually do when you go to a park? Tell me about your routine from beginning to end.',
+            'Tell me about a memorable or unexpected experience you had at a park.'
           ],
-          connectors: ['We usually...', 'One time...', 'As a result...']
+          connectors: ['There is...', 'I usually go there to...', 'One day...']
         },
-        housework: {
-          label: 'Housework',
+        performance: {
+          label: 'Watching performances',
           questions: [
-            'What kind of housework do you usually do at home? Describe your routine.',
-            'Tell me about a time when doing housework was difficult or annoying.',
-            'How do you divide housework with your family?'
+            'What kinds of performances do you enjoy watching? Tell me how often you watch them and who you go with.',
+            'Describe a theater or performance venue you have visited. What was the atmosphere like?',
+            'Tell me about the most memorable performance you have seen. What happened on stage, and how did you feel?'
           ],
-          connectors: ['First, I usually...', 'The difficult part is...', 'After that...']
+          connectors: ['I enjoy watching...', 'The venue was...', 'The best part was...']
+        },
+        concert: {
+          label: 'Going to concerts',
+          questions: [
+            'Tell me about the kinds of concerts you like to attend. Who do you usually go with, and what do you do there?',
+            'Describe the atmosphere at a concert you enjoyed. Include the music, the crowd, and the venue.',
+            'Tell me about a memorable concert experience. What made it special or unexpected?'
+          ],
+          connectors: ['I went to see...', 'The atmosphere was...', 'The highlight was...']
+        },
+        game: {
+          label: 'Playing games',
+          questions: [
+            'What games do you like playing? Describe how, when, and with whom you usually play them.',
+            'Tell me about a game you especially enjoy. Explain its rules and what makes it fun.',
+            'Tell me about a memorable or exciting moment you had while playing a game.'
+          ],
+          connectors: ['I usually play...', 'The goal of the game is...', 'At that moment...']
+        },
+        tv: {
+          label: 'Watching TV',
+          questions: [
+            'What kinds of TV programs do you enjoy watching? Tell me when and where you usually watch them.',
+            'Tell me about your favorite TV show or series. What is it about, and why do you like it?',
+            'Describe a memorable program or episode you watched on TV.'
+          ],
+          connectors: ['I usually watch...', 'The show is about...', 'My favorite episode was...']
         },
         music: {
           label: 'Listening to music',
           questions: [
             'What kind of music do you like listening to? When and where do you usually listen to it?',
-            'Tell me about your favorite singer or song. Why do you like it?',
+            'Tell me about your favorite singer, band, or song. Why do you like it?',
             'Describe a memorable experience related to music.'
           ],
           connectors: ['I am really into...', 'Whenever I...', 'It makes me feel...']
         },
-        concert: {
-          label: 'Concerts and performances',
-          questions: [
-            'Tell me about a concert or performance you went to. What was it like?',
-            'Describe the atmosphere at a live performance you enjoyed.',
-            'Would you rather watch a performance online or in person? Explain why.'
-          ],
-          connectors: ['The atmosphere was...', 'The best moment was...', 'Personally...']
-        },
-        game: {
-          label: 'Games',
-          questions: [
-            'What games do you like playing? Describe how you usually play them.',
-            'Tell me about a memorable moment you had while playing a game.',
-            'How have your gaming habits changed compared to the past?'
-          ],
-          connectors: ['I usually play...', 'At that time...', 'Compared to before...']
-        },
-        cooking: {
-          label: 'Cooking',
-          questions: [
-            'Do you like cooking? Describe what you usually cook and how you make it.',
-            'Tell me about a time when you cooked something successfully or unsuccessfully.',
-            'What kind of food would you like to learn to cook? Why?'
-          ],
-          connectors: ['The first step is...', 'It turned out...', 'That is why...']
-        },
         pet: {
-          label: 'Pets',
+          label: 'Taking care of a pet',
           questions: [
-            'Tell me about your pet or a pet you would like to have. What is it like?',
-            'Describe your daily routine with a pet.',
-            'Tell me about a funny or memorable moment related to a pet.'
+            'Tell me about your pet. What does it look like, and what is its personality like?',
+            'Describe your daily routine with your pet from morning to night.',
+            'Tell me about a funny, difficult, or memorable experience you had with your pet.'
           ],
           connectors: ['My pet is...', 'Every day, I...', 'One funny thing is...']
         },
+        jogging: {
+          label: 'Jogging',
+          questions: [
+            'Tell me about your jogging routine. Where, when, and how often do you usually jog?',
+            'Describe your favorite place to go jogging. What does the route look like?',
+            'Tell me about a memorable or unexpected experience you had while jogging.'
+          ],
+          connectors: ['I usually jog...', 'My favorite route is...', 'While I was jogging...']
+        },
         walking: {
-          label: 'Walking and jogging',
+          label: 'Walking',
           questions: [
-            'Tell me about your walking or jogging routine. Where do you usually go?',
-            'Describe your favorite place to walk or jog.',
-            'Tell me about a time when you went for a walk and something memorable happened.'
+            'Tell me about your walking routine. Where do you usually go, and how often do you walk?',
+            'Describe your favorite place to take a walk. What can you see and hear there?',
+            'Tell me about a time when something memorable happened while you were taking a walk.'
           ],
-          connectors: ['I usually go...', 'It helps me...', 'One day...']
-        },
-        gym: {
-          label: 'Gym and fitness',
-          questions: [
-            'Tell me about your workout routine at the gym.',
-            'Describe the gym you go to. What equipment or facilities does it have?',
-            'Tell me about a fitness goal you have and how you are working on it.'
-          ],
-          connectors: ['My routine starts with...', 'My goal is to...', 'I have noticed that...']
-        },
-        cycling: {
-          label: 'Cycling',
-          questions: [
-            'Do you enjoy riding a bicycle? Where do you usually ride?',
-            'Describe a memorable cycling experience you had.',
-            'Compare cycling with another form of exercise you enjoy.'
-          ],
-          connectors: ['I usually ride along...', 'What happened was...', 'Compared with...']
+          connectors: ['I usually take a walk...', 'It helps me...', 'One day...']
         },
         domestic: {
           label: 'Domestic travel',
           questions: [
-            'Tell me about a domestic trip you took. Where did you go, and what did you do?',
-            'Describe a city or place in your country that you recommend visiting.',
-            'Tell me about a problem you had while traveling in your country.'
+            'Tell me about a domestic trip you took. Where did you go, who did you go with, and what did you do?',
+            'Describe a place in Korea that you recommend visiting. What makes it special?',
+            'Tell me about a memorable problem or unexpected event you experienced while traveling in Korea.'
           ],
           connectors: ['I went to...', 'The highlight was...', 'Unfortunately...']
         },
         overseas: {
           label: 'Overseas travel',
           questions: [
-            'Tell me about an overseas trip you took or would like to take.',
-            'Describe a memorable experience you had while traveling abroad.',
-            'Compare traveling abroad with traveling within your country.'
+            'Tell me about an overseas trip you took. Where did you go, who did you go with, and what did you do?',
+            'Describe a foreign city or country that left a strong impression on you.',
+            'Tell me about a memorable problem or unexpected event you experienced while traveling abroad.'
           ],
           connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
-        },
-        camping: {
-          label: 'Camping',
-          questions: [
-            'Tell me about your camping experience. Where did you go, and what did you do?',
-            'Describe what you need to prepare before going camping.',
-            'Tell me about a problem that can happen while camping and how you would solve it.'
-          ],
-          connectors: ['Before camping...', 'During the trip...', 'If that happens...']
-        },
-        park: {
-          label: 'Parks',
-          questions: [
-            'Describe a park you often visit. What does it look like?',
-            'What do you usually do at a park?',
-            'Tell me about a memorable day you spent at a park.'
-          ],
-          connectors: ['There is...', 'People usually...', 'I remember when...']
-        },
-        shopping: {
-          label: 'Shopping',
-          questions: [
-            'Tell me about your shopping habits. What do you usually buy, and where?',
-            'Describe a memorable shopping experience, good or bad.',
-            'Compare online shopping with shopping in a store.'
-          ],
-          connectors: ['I usually buy...', 'One time...', 'The main difference is...']
-        },
-        sns: {
-          label: 'Social media',
-          questions: [
-            'Do you use social media? What platforms do you use, and what do you do there?',
-            'Tell me about a memorable post or video you saw on social media.',
-            'How has social media changed the way people communicate?'
-          ],
-          connectors: ['I mainly use...', 'I came across...', 'These days...']
-        },
-        phone: {
-          label: 'Using a phone',
-          questions: [
-            'Tell me about how you use your phone in daily life.',
-            'Describe an app you use often on your phone and why it is useful.',
-            'Tell me about a time when you had a problem with your phone.'
-          ],
-          connectors: ['I use my phone to...', 'The app is useful because...', 'The problem was...']
         }
       };
+      root.querySelector('#oiv-profile').textContent = '고정 설문: ' + Object.values(surveyProfile).join(' · ');
       const questionTemplates = [
         "Let's talk about {topic}. First, describe it in as much detail as you can. What is it like, and what makes it different from other things?",
         "I'd like to know more about {topic}. Tell me what you usually do, when you do it, and who you are usually with.",
@@ -460,7 +402,7 @@
       let lastAnswerSeconds = 0;
       const opicLevels = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
       let assessmentHistory = [];
-      function topicKeys() { return Object.keys(topics); }
+      function topicKeys() { return allowedTopicKeys.filter(function (key) { return Boolean(topics[key]); }); }
       function randomTopicKey() {
         const keys = topicKeys();
         return keys[Math.floor(Math.random() * keys.length)];
@@ -1019,7 +961,7 @@
       els.stop.addEventListener('click', stop);
       els.feedbackSpeak.addEventListener('click', speakFeedback);
       els.modelSpeak.addEventListener('click', speakModelAnswer);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 세트 모드' : '새 유형 선택됨', false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '내 설문 랜덤 모드' : '선택 주제 연습 모드', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       renderAssessment();
