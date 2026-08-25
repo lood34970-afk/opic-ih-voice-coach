@@ -81,25 +81,38 @@
     <div class="oiv-top">
       <div class="oiv-status" aria-live="polite">
         <span id="oiv-dot" class="oiv-dot" aria-hidden="true"></span>
-        <span id="oiv-status">내 설문 13개 주제 연습 대기 중</span>
+        <span id="oiv-status">설문 13개 + 돌발 8개 연습 대기 중</span>
       </div>
       <div class="viz-controls" aria-label="OPIc IH 연습 선택">
         <label class="form-label">문제 유형
           <select id="oiv-topic" class="form-select">
-            <option value="random" selected>내 설문 기준 랜덤</option>
-            <option value="home">가족과 아파트 거주</option>
-            <option value="movie">영화 보기</option>
-            <option value="park">공원 가기</option>
-            <option value="performance">공연 보기</option>
-            <option value="concert">콘서트 보기</option>
-            <option value="game">게임하기</option>
-            <option value="tv">TV 보기</option>
-            <option value="music">음악 감상</option>
-            <option value="pet">애완동물 키우기</option>
-            <option value="jogging">조깅</option>
-            <option value="walking">걷기</option>
-            <option value="domestic">국내 여행</option>
-            <option value="overseas">해외 여행</option>
+            <option value="random" selected>실전 랜덤 (설문 + 돌발)</option>
+            <option value="surprise">돌발 주제 랜덤</option>
+            <optgroup label="내 설문 주제 13개">
+              <option value="home">가족과 아파트 거주</option>
+              <option value="movie">영화 보기</option>
+              <option value="park">공원 가기</option>
+              <option value="performance">공연 보기</option>
+              <option value="concert">콘서트 보기</option>
+              <option value="game">게임하기</option>
+              <option value="tv">TV 보기</option>
+              <option value="music">음악 감상</option>
+              <option value="pet">애완동물 키우기</option>
+              <option value="jogging">조깅</option>
+              <option value="walking">걷기</option>
+              <option value="domestic">국내 여행</option>
+              <option value="overseas">해외 여행</option>
+            </optgroup>
+            <optgroup label="돌발 주제 8개">
+              <option value="recycling">재활용·환경</option>
+              <option value="weather">날씨·계절</option>
+              <option value="transportation">대중교통</option>
+              <option value="banking">은행</option>
+              <option value="appointment">약속·예약</option>
+              <option value="hotel">호텔</option>
+              <option value="restaurant">음식점·음식 배달</option>
+              <option value="health">건강</option>
+            </optgroup>
           </select>
         </label>
         <label class="form-label">목표 답변
@@ -117,7 +130,7 @@
       <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
         <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
         <div>
-          <div id="oiv-line" class="oiv-line">문제 듣기를 누르면 내 설문에 맞춘 325문항에서 실제처럼 한 주제 3연속 질문이 나옵니다.</div>
+          <div id="oiv-line" class="oiv-line">설문 13개와 돌발 8개, 총 525문항에서 실제처럼 한 주제 3연속 질문이 나옵니다.</div>
           <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
         </div>
         <div class="oiv-time" id="oiv-time">00:00</div>
@@ -183,10 +196,15 @@
         recentClass: '최근 수강 경험 5년 이상 없음',
         residence: '가족과 아파트 거주'
       });
-      const allowedTopicKeys = Object.freeze([
+      const surveyTopicKeys = Object.freeze([
         'home', 'movie', 'park', 'performance', 'concert', 'game', 'tv',
         'music', 'pet', 'jogging', 'walking', 'domestic', 'overseas'
       ]);
+      const surpriseTopicKeys = Object.freeze([
+        'recycling', 'weather', 'transportation', 'banking',
+        'appointment', 'hotel', 'restaurant', 'health'
+      ]);
+      const allowedTopicKeys = Object.freeze(surveyTopicKeys.concat(surpriseTopicKeys));
       const topics = {
         home: {
           label: 'Living with family in an apartment',
@@ -304,9 +322,81 @@
             'Tell me about a memorable problem or unexpected event you experienced while traveling abroad.'
           ],
           connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
+        },
+        recycling: {
+          label: 'Recycling and the environment',
+          questions: [
+            'Tell me how people recycle where you live. What items do they separate, and where do they take them?',
+            'Describe your usual recycling routine at home from sorting the waste to throwing it away.',
+            'Tell me about a time when you had a problem or saw something unusual while recycling.'
+          ],
+          connectors: ['In my apartment...', 'First, I separate...', 'The problem was...']
+        },
+        weather: {
+          label: 'Weather and seasons',
+          questions: [
+            'Tell me about the weather and seasons in Korea. What is each season usually like?',
+            'What is your favorite season, and what do you usually do when the weather is like that?',
+            'Tell me about a time when unusual or severe weather changed your plans.'
+          ],
+          connectors: ['In Korea...', 'My favorite season is...', 'Because of the weather...']
+        },
+        transportation: {
+          label: 'Public transportation',
+          questions: [
+            'Describe the public transportation system where you live. What types are available, and which one do you use most?',
+            'Walk me through your usual trip on public transportation from beginning to end.',
+            'Tell me about a memorable problem you experienced while using public transportation and how you handled it.'
+          ],
+          connectors: ['I usually take...', 'First, I...', 'One time...']
+        },
+        banking: {
+          label: 'Banks and banking',
+          questions: [
+            'Tell me about banks in your country and the banking services people commonly use.',
+            'How do you usually handle your banking? Describe what you do online or when you visit a bank.',
+            'Tell me about a time when you had a problem with a bank transaction or banking service.'
+          ],
+          connectors: ['Most people...', 'I usually use...', 'The issue was...']
+        },
+        appointment: {
+          label: 'Appointments and reservations',
+          questions: [
+            'What kinds of appointments or reservations do you usually make, and how do you make them?',
+            'Describe the steps you follow when making a reservation by phone or online.',
+            'Tell me about a time when you had to cancel or change an appointment unexpectedly.'
+          ],
+          connectors: ['I usually make...', 'The first thing I do is...', 'I had to change it because...']
+        },
+        hotel: {
+          label: 'Hotels',
+          questions: [
+            'Describe a hotel you have stayed at. Where was it, and what were its rooms and facilities like?',
+            'What do you usually do before and after checking into a hotel?',
+            'Tell me about a memorable problem or request you had during a hotel stay.'
+          ],
+          connectors: ['The hotel was located...', 'When I check in...', 'I called the front desk...']
+        },
+        restaurant: {
+          label: 'Restaurants and food delivery',
+          questions: [
+            'Tell me about a restaurant you like. What kind of food does it serve, and what is the atmosphere like?',
+            'Describe how you usually order food at a restaurant or through a delivery app.',
+            'Tell me about a time when there was a problem with your meal or food delivery and how you solved it.'
+          ],
+          connectors: ['My favorite restaurant...', 'I usually order...', 'When the food arrived...']
+        },
+        health: {
+          label: 'Health and wellness',
+          questions: [
+            'What do people usually do to stay healthy? Tell me about healthy habits that are common in your country.',
+            'Describe your own routine for staying healthy, including exercise, food, or rest.',
+            'Tell me about a time when you felt unwell or had to change your routine because of your health.'
+          ],
+          connectors: ['To stay healthy...', 'I try to...', 'At that time...']
         }
       };
-      root.querySelector('#oiv-profile').textContent = '고정 설문: ' + Object.values(surveyProfile).join(' · ');
+      root.querySelector('#oiv-profile').textContent = '고정 설문: ' + Object.values(surveyProfile).join(' · ') + ' · 돌발 8개 혼합';
       const questionTemplates = [
         "Let's talk about {topic}. First, describe it in as much detail as you can. What is it like, and what makes it different from other things?",
         "I'd like to know more about {topic}. Tell me what you usually do, when you do it, and who you are usually with.",
@@ -403,11 +493,16 @@
       const opicLevels = ['NL', 'NM', 'NH', 'IL', 'IM1', 'IM2', 'IM3', 'IH', 'AL'];
       let assessmentHistory = [];
       function topicKeys() { return allowedTopicKeys.filter(function (key) { return Boolean(topics[key]); }); }
-      function randomTopicKey() {
-        const keys = topicKeys();
+      function isSurpriseTopic(topicKey) { return surpriseTopicKeys.indexOf(topicKey) !== -1; }
+      function isSetMode() { return els.topic.value === 'random' || els.topic.value === 'surprise'; }
+      function pickRandomTopicKey(keys) {
         return keys[Math.floor(Math.random() * keys.length)];
       }
-      function selectedTopicKey() { return els.topic.value === 'random' ? activeTopicKey : els.topic.value; }
+      function randomTopicKey(mode) {
+        if (mode === 'surprise') return pickRandomTopicKey(surpriseTopicKeys);
+        return Math.random() < 0.3 ? pickRandomTopicKey(surpriseTopicKeys) : pickRandomTopicKey(surveyTopicKeys);
+      }
+      function selectedTopicKey() { return isSetMode() ? activeTopicKey : els.topic.value; }
       function topic() { return topics[selectedTopicKey()]; }
       function rememberQuestion(key) {
         recentQuestionKeys.push(key);
@@ -437,15 +532,19 @@
         ];
       }
       function pickQuestion() {
-        if (els.topic.value === 'random') {
+        if (isSetMode()) {
           if (!currentSetQueue.length) {
-            currentSetTopicKey = randomTopicKey();
+            const previousTopicKey = currentSetTopicKey;
+            currentSetTopicKey = randomTopicKey(els.topic.value);
+            for (let attempt = 0; attempt < 20 && currentSetTopicKey === previousTopicKey; attempt += 1) {
+              currentSetTopicKey = randomTopicKey(els.topic.value);
+            }
             currentSetQueue = buildRealisticSet(currentSetTopicKey);
           }
           activeTopicKey = currentSetTopicKey;
           const question = currentSetQueue.shift();
           rememberQuestion(makeQuestionKey(activeTopicKey, question));
-          return { topicKey: activeTopicKey, question: question, total: topicKeys().length * 25, remainingInSet: currentSetQueue.length };
+          return { topicKey: activeTopicKey, question: question, total: els.topic.value === 'surprise' ? surpriseTopicKeys.length * 25 : topicKeys().length * 25, remainingInSet: currentSetQueue.length, surprise: isSurpriseTopic(activeTopicKey) };
         }
         activeTopicKey = els.topic.value;
         currentSetQueue = [];
@@ -459,7 +558,7 @@
           if (recentQuestionKeys.indexOf(qKey) === -1) break;
         }
         rememberQuestion(qKey);
-        return { topicKey: activeTopicKey, question: list[index], total: 25, remainingInSet: 0 };
+        return { topicKey: activeTopicKey, question: list[index], total: 25, remainingInSet: 0, surprise: isSurpriseTopic(activeTopicKey) };
       }
       function safe(text) { return text.replace(/[&<>"]/g, function (ch) { return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]); }); }
       function setStatus(text, live) { els.status.textContent = text; els.dot.classList.toggle('live', Boolean(live)); }
@@ -590,7 +689,11 @@
         answerHasStarted = false;
         updateQuestionButton();
         speak(picked.question);
-        els.subline.textContent = (els.topic.value === 'random' ? '실전 세트 ' + (3 - picked.remainingInSet) + '/3 · ' : '25문항 랜덤 · ') + t.label;
+        if (isSetMode()) {
+          els.subline.textContent = (picked.surprise ? '돌발 세트 ' : '설문 세트 ') + (3 - picked.remainingInSet) + '/3 · ' + t.label;
+        } else {
+          els.subline.textContent = (picked.surprise ? '돌발 주제 · ' : '설문 주제 · ') + '25문항 랜덤 · ' + t.label;
+        }
       }
       function startMeter() { stopMeter(); meterTimer = setInterval(function () { els.meter.style.width = (18 + Math.round(Math.random() * 78)) + '%'; }, 150); }
       function stopMeter() { if (meterTimer) clearInterval(meterTimer); meterTimer = null; els.meter.style.width = '0%'; }
@@ -959,7 +1062,7 @@
       els.stop.addEventListener('click', stop);
       els.feedbackSpeak.addEventListener('click', speakFeedback);
       els.modelSpeak.addEventListener('click', speakModelAnswer);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'random' ? 'home' : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '내 설문 랜덤 모드' : '선택 주제 연습 모드', false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = isSetMode() ? (els.topic.value === 'surprise' ? surpriseTopicKeys[0] : surveyTopicKeys[0]) : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 랜덤 모드 · 돌발 약 30%' : (els.topic.value === 'surprise' ? '돌발 주제 랜덤 모드' : '선택 주제 연습 모드'), false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       renderAssessment();
