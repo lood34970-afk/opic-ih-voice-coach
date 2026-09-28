@@ -122,7 +122,7 @@
       <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
         <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
         <div>
-          <div id="oiv-line" class="oiv-line">내 설문 13개에 해당하는 공개 기출 복원·문항집 원문만 연습합니다.</div>
+          <div id="oiv-line" class="oiv-line">내 설문 13개 · 주제별 2세트 · 검증 기출 78문항만 연습합니다.</div>
           <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
         </div>
         <div class="oiv-time" id="oiv-time">00:00</div>
@@ -142,7 +142,7 @@
       <div id="oiv-source" class="text-small text-muted">예상·기출변형·AI 생성 문항을 제외하고, 공개 기출 복원·문항집에서 확인한 원문만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.2.0 · build 2026.09.28.2</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.3.0 · build 2026.09.28.3</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -206,10 +206,15 @@
           questions: [
             'Can you describe your home for me? What does it look like from the outside and what’s it like inside? How many rooms does it have? Which room is your favorite and why do you enjoy spending time there?',
             'Compare the home you lived in before to the one you live in now. What are the differences between those two homes? Provide me with as many details as possible.',
-            'Can you share a memorable experience you had at your house? Describe what happened, who was involved, and why this experience stands out to you.'
+            'Can you share a memorable experience you had at your house? Describe what happened, who was involved, and why this experience stands out to you.',
+            'I would like to know where you live. Which is your favorite room at home? What does it look like? What do you mostly do there?',
+            'Tell me about a change you made to your home. What was the change and why did you make that change? How did your home look afterwards? Give me all the details.',
+            'Now, tell me about the problems that happen at your home. What are those problems? Why do they occur? How do people deal with those problems? How do you personally deal with those problems?'
           ],
-          sourceLabel: '실제 시험 최신 기출 복원 · 거주지 3콤보',
-          sourceUrl: 'https://www.youtube.com/watch?v=NXgOxpyfbtM',
+          sources: [
+            { label: '실제 시험 최신 기출 복원 · 거주지 3콤보', url: 'https://www.youtube.com/watch?v=NXgOxpyfbtM' },
+            { label: '거주지 주요 기출 원문', url: 'https://babeseoul.tistory.com/45' }
+          ],
           connectors: ['I live with...', 'What I like most is...', 'At home, we usually...']
         },
         movie: {
@@ -217,7 +222,10 @@
           questions: [
             'You indicated that you like to go to the movies. What is your favorite genre of movies? Why do you like those types of movies?',
             'I\'d like you to tell me about one of the most memorable movies you\'ve seen. What is the story about? Who was the main actor or actress? How did the movie affect you?',
-            'When was the first time that you watched a movie at the movie theater? What is your memory about that time? How has your movie taste changed since then?'
+            'When was the first time that you watched a movie at the movie theater? What is your memory about that time? How has your movie taste changed since then?',
+            'Who is your favorite movie actor or actress? Tell me a specific story about something this actor did that you heard about in the news. Begin the story with some details about the actor or actress and then tell me all the details of what happened.',
+            'Who do you usually go to the movies with? Are there any special reasons that you watch movies with this person? What do you do with this person after seeing a movie? What do you usually do before you go to a movie theater? What do you do after watching the movie?',
+            'Have you ever been hindered by someone or something while you were watching a movie? How exactly did this person bother you? Tell me about the situation in detail.'
           ],
           sourceLabel: '영화보기 주요 기출 원문',
           sourceUrl: 'https://babeseoul.tistory.com/46',
@@ -228,7 +236,10 @@
           questions: [
             'You indicated that you like to go to parks. Tell me about one of the parks that you often visit. What does it look like? Tell me what people do there at the park.',
             'Tell me about a memorable incident that happened at the park.',
-            'When do you go to the park? What do you usually do there? Who with?'
+            'When do you go to the park? What do you usually do there? Who with?',
+            'How did you first start going to parks? What made you visit parks in the first place? Why do you go to parks now? Tell me how your interest in going to the parks changed over the years. Give me all the details.',
+            'Pick two popular parks that you know of and tell me about their similarities and differences. Which one do you prefer and why?',
+            'I\'d like to know about one of the issues today\'s parks are faced with. What are the challenges public parks are faced with these days? Discuss what has caused these concerns. What kind of steps need to be taken to address these issues?'
           ],
           sourceLabel: '공원가기 주요 기출 원문',
           sourceUrl: 'https://babeseoul.tistory.com/48',
@@ -239,10 +250,15 @@
           questions: [
             'You indicated in the survey that you enjoy watching a performance. Tell me about the performance hall you like to go to. Where is it located? Why do you like to go there? I’d like to know about the inside and outside of the performance hall.',
             'Do you remember the first performance you watched? What was it? When was it? Tell me in as much detail as you can.',
-            'I’d like to know the most memorable performance you have ever seen. When was it? What kind of performance was it? Why was it so memorable to you? Tell me about it in as much detail as possible.'
+            'I’d like to know the most memorable performance you have ever seen. When was it? What kind of performance was it? Why was it so memorable to you? Tell me about it in as much detail as possible.',
+            'Tell me about a time when you went to listen to some live music. Perhaps it was at a concert or a live cafe. What was the mood like and how did you like the music you listened to there?',
+            'How have the performances in your country changed or developed over the last several years? What do you think about the changes?',
+            'Tell me about an unpleasant incident you had related to music. What was the problem? What exactly happened? How did you deal with the situation? Give me all the details from beginning to end.'
           ],
-          sourceLabel: '공연보기 공개 기출 족보 원문',
-          sourceUrl: 'https://dobusiness.tistory.com/18',
+          sources: [
+            { label: '공연보기 공개 기출 족보 원문', url: 'https://dobusiness.tistory.com/18' },
+            { label: '음악·콘서트·공연 기출 질문 원문', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-3-%EC%9D%8C%EC%95%85' }
+          ],
           connectors: ['I enjoy watching...', 'The venue was...', 'The best part was...']
         },
         concert: {
@@ -250,10 +266,15 @@
           questions: [
             'Do you like to do anything special before and after a concert? Tell me what you usually do when you go to concerts.',
             'What was the most memorable concert you’ve watched?',
-            'What was the last concert that you went to? How was the concert? Give me all the details of that particular concert.'
+            'What was the last concert that you went to? How was the concert? Give me all the details of that particular concert.',
+            'I’d like to give you a situation and ask you to act it out. You want to buy two tickets to go watch a concert tonight. Call the theater and ask two to three questions about ways to get tickets.',
+            'Tell me about a time when you went to listen to some live music. Perhaps it was at a concert or a live cafe. What was the mood like and how did you like the music you listened to there?',
+            'You have bought the concert tickets for today, but at the last minute you are so sick that you can’t even get out of bed. Call your friend and explain your situation. Give two or three alternatives to your friend.'
           ],
-          sourceLabel: '콘서트 공개 기출 족보 원문',
-          sourceUrl: 'https://dobusiness.tistory.com/18',
+          sources: [
+            { label: '콘서트 공개 기출 족보 원문', url: 'https://dobusiness.tistory.com/18' },
+            { label: '음악·콘서트·공연 기출 질문 원문', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-3-%EC%9D%8C%EC%95%85' }
+          ],
           connectors: ['I went to see...', 'The atmosphere was...', 'The highlight was...']
         },
         game: {
@@ -261,7 +282,10 @@
           questions: [
             'Let’s talk about a game you like to play. How often do you play the game? When and where do you play the game? Why do you like playing that game?',
             'What is your favorite game? Why do you like it? What are the rules?',
-            'You have indicated that you play games frequently. I think you have experienced something interesting or memorable while playing games. Please tell me about it in as much detail as possible.'
+            'You have indicated that you play games frequently. I think you have experienced something interesting or memorable while playing games. Please tell me about it in as much detail as possible.',
+            'How did you become interested in playing games at first? How did you learn it?',
+            'Can you tell me about the last time you played games? What did you play? Did you win or lose the game?',
+            'You indicated in the survey that you like to play games. Can you tell me about a game you play most often?'
           ],
           sourceLabel: 'OPIc 게임하기 공개 기출 문항집',
           sourceUrl: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html',
@@ -272,7 +296,10 @@
           questions: [
             'Tell me about a reality TV show that you like to watch. Why do you like watching that show? How often do you tune in? How does it affect your life?',
             'What was the latest episode of the reality show you’ve watched? What was so memorable about that episode? Give me all the details about what made that particular episode more memorable.',
-            'How have reality TV programs changed over the years? How are the shows different from what they used to be? How did you first become interested in them? How did your interest change? Give me specific examples of the changes reality shows have gone through.'
+            'How have reality TV programs changed over the years? How are the shows different from what they used to be? How did you first become interested in them? How did your interest change? Give me specific examples of the changes reality shows have gone through.',
+            'Tell me about the TV shows or movies you like to watch. What do you like about them?',
+            'Where does the reality program you watch take place? Why does the show take place there? What is special about that place?',
+            'Discuss the issues that come up when you talk about reality TV shows with your friends. What is the main topic and why do people talk about that topic?'
           ],
           sourceLabel: 'OPIc TV 프로그램 공개 문항집',
           sourceUrl: 'https://www.scribd.com/document/1052397532/A-Opic-Question-Sample2',
@@ -283,10 +310,15 @@
           questions: [
             'In your background survey, you indicated that you like to listen to music. What kind of music do you like? Who is your favorite musician or composer?',
             'How do you enjoy listening to music? When and where do you listen to music? Do you listen to the radio or go to a concert? Please give me all the details.',
-            'How did you first become interested in music? Has your taste in music changed over the years?'
+            'How did you first become interested in music? Has your taste in music changed over the years?',
+            'You indicated that you like to listen to music. What type of music do you like listening to? Plus, who is your favorite singer or composer? What is special about his or her music?',
+            'When and where do you like to listen to music? Why do you listen to music?',
+            'What kind of music did you listen to when you were young? How was that music different from the music you listen to today? How has your interest in music changed over the years?'
           ],
-          sourceLabel: '실제 시험 최신 기출 복원 · 음악 3콤보',
-          sourceUrl: 'https://www.youtube.com/watch?v=DweyPJ12FzE',
+          sources: [
+            { label: '실제 시험 최신 기출 복원 · 음악 3콤보', url: 'https://www.youtube.com/watch?v=DweyPJ12FzE' },
+            { label: '음악·콘서트·공연 기출 질문 원문', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-3-%EC%9D%8C%EC%95%85' }
+          ],
           connectors: ['I am really into...', 'Whenever I...', 'It makes me feel...']
         },
         pet: {
@@ -294,10 +326,15 @@
           questions: [
             'You indicated that you have a pet. Could you tell me about it? What does it look like? Tell me about your pet’s personality.',
             'Do you remember the first day you met your pet? Where did you meet it and how come you wanted to have it in the first place?',
-            'What kind of activities do you do with your pet? Who cares for your pet? How does your family feel about your pet?'
+            'What kind of activities do you do with your pet? Who cares for your pet? How does your family feel about your pet?',
+            'You indicated in the survey that you are a pet owner. Can you describe your pet in as much detail as possible?',
+            'Please act out the following situation. You are hoping to care for a pet in your home. Can you talk on the phone with a local pet shop and ask them three or four questions about the pet you wish to adopt?',
+            'That’s the end of the situation. Have you ever tried to adopt a pet before? Tell me about that experience. What steps did you have to take and what happened in the end?'
           ],
-          sourceLabel: 'OPIc 애완동물 공개 문항집',
-          sourceUrl: 'https://www.scribd.com/document/959428035/Final-Opic-Graduates',
+          sources: [
+            { label: 'OPIc 애완동물 공개 문항집', url: 'https://www.scribd.com/document/959428035/Final-Opic-Graduates' },
+            { label: '해커스 OPIc 애완동물 출제 연습 원문', url: 'https://www.koreatimes.co.kr/learningenglish/hackerstoeic/20210521/hackers-opic-lets-get-ihal-2021-may' }
+          ],
           connectors: ['My pet is...', 'Every day, I...', 'One funny thing is...']
         },
         jogging: {
@@ -305,10 +342,15 @@
           questions: [
             'Where do you often go to for jogging? Where is it located? What does it look like? Describe your favorite place for jogging in detail.',
             'You indicated in the survey that you like to go jogging. Can you tell me about the social, physical, and mental benefits of jogging? What are the advantages of jogging? Tell me in detail.',
-            'How did you get into jogging initially? What made you continue? Tell me about your motivation to try and continue in as much detail as possible.'
+            'How did you get into jogging initially? What made you continue? Tell me about your motivation to try and continue in as much detail as possible.',
+            'Tell me about the most interesting place you’ve ever gone for a jog at. Where was it? Why was this place so interesting? Who did you go with? What was your time there like?',
+            'What clothing do you wear when you go jogging? Can you tell me what clothes you like to wear during different seasons of the year? Please describe them in detail.',
+            'What do you have to consider when you go jogging? What can you do to avoid an injury?'
           ],
-          sourceLabel: '걷기·조깅 주요 기출 원문',
-          sourceUrl: 'https://babeseoul.tistory.com/51',
+          sources: [
+            { label: '걷기·조깅 주요 기출 원문', url: 'https://babeseoul.tistory.com/51' },
+            { label: '걷기·조깅 기출 질문 원문', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-4-%EA%B1%B7%EA%B8%B0%EC%82%B0%EC%B1%85%ED%95%98%EA%B8%B0%EC%A1%B0%EA%B9%85%ED%95%98%EA%B8%B0' }
+          ],
           connectors: ['I usually jog...', 'My favorite route is...', 'While I was jogging...']
         },
         walking: {
@@ -316,10 +358,15 @@
           questions: [
             'Please describe a memorable experience you had while walking. Explain what happened and why it was so memorable. Provide as many details as you can.',
             'What do you like about walking? Why did you first become interested in it? How does walking make you feel?',
-            'How far do you normally walk? How long does it usually take you to go for a walk? Tell me about your typical walking routine from the beginning to the end.'
+            'How far do you normally walk? How long does it usually take you to go for a walk? Tell me about your typical walking routine from the beginning to the end.',
+            'You indicated in the survey that you like walking. I’d like to know about your favorite place to go walking. Why do you like that particular place? Please describe this place in detail.',
+            'What do you take with you when you walk? Besides that, I want to know how clothes vary from season to season when you go for a walk. Please tell me about these things.',
+            'You said that you like to walk. What is the difference in your body condition from when you first started until now? Also, how has your mental attitude changed since you started walking? Tell me about these changes.'
           ],
-          sourceLabel: '걷기·조깅 기출 질문 원문',
-          sourceUrl: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-4-%EA%B1%B7%EA%B8%B0%EC%82%B0%EC%B1%85%ED%95%98%EA%B8%B0%EC%A1%B0%EA%B9%85%ED%95%98%EA%B8%B0',
+          sources: [
+            { label: '걷기·조깅 기출 질문 원문', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-4-%EA%B1%B7%EA%B8%B0%EC%82%B0%EC%B1%85%ED%95%98%EA%B8%B0%EC%A1%B0%EA%B9%85%ED%95%98%EA%B8%B0' },
+            { label: '실제 시험 복원 · 걷기 3콤보', url: 'https://beyourself23.tistory.com/46' }
+          ],
           connectors: ['I usually take a walk...', 'It helps me...', 'One day...']
         },
         domestic: {
@@ -327,10 +374,15 @@
           questions: [
             'In your background survey, you indicated that you enjoy domestic travel. Where do you like to visit? Which do you prefer, mountains or beaches? Describe the place you like to visit and why you like to go there.',
             'Unexpected things can happen on trips. Talk about an unforgettable incident that happened on a trip. Why was the experience so memorable? Give me all the details.',
-            'Talk about a trip you went on in your childhood. What do you remember about that trip? Where did you go, and whom did you go with? What made the trip special?'
+            'Talk about a trip you went on in your childhood. What do you remember about that trip? Where did you go, and whom did you go with? What made the trip special?',
+            'Tell me about a memorable experience you had during your vacation. Please describe it in detail.',
+            'What are some things you do in order to prepare for trips?',
+            'Can you describe for me some of the things that you enjoy doing on your vacation?'
           ],
-          sourceLabel: '국내·해외여행 주요 기출 원문',
-          sourceUrl: 'https://babeseoul.tistory.com/52',
+          sources: [
+            { label: '국내·해외여행 주요 기출 원문', url: 'https://babeseoul.tistory.com/52' },
+            { label: '국내·해외여행 기출 질문 원문', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-5-%EA%B5%AD%EB%82%B4%EC%97%AC%ED%96%89%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89' }
+          ],
           connectors: ['I went to...', 'The highlight was...', 'Unfortunately...']
         },
         overseas: {
@@ -338,10 +390,16 @@
           questions: [
             'You indicated in your survey that you take vacations internationally. Tell me about a city or country you have visited. Where is it located? What are the people like, and what makes this place unique?',
             'When you travel abroad, what are some activities you typically do? Describe your usual routine when taking an international vacation.',
-            'Do you remember your first trip abroad? When was it? Where did you go? Who did you go with? What did you do? Tell me the whole story in detail.'
+            'Do you remember your first trip abroad? When was it? Where did you go? Who did you go with? What did you do? Tell me the whole story in detail.',
+            'You indicated that you like to travel abroad. Tell me about the things that you should not forget to do when travelling abroad.',
+            'During an overseas trip, you may have had a memorable, humorous, challenging, or interesting memory. When and where did it happen? What did you do at that time, and why was it so memorable for you? Please tell me everything you remember.',
+            'When people think about traveling to foreign countries, what are some things they are most interested in? Why do you think these things are of such interest to travelers?'
           ],
-          sourceLabel: '실제 시험 최신 기출 복원 · 해외여행 3콤보',
-          sourceUrl: 'https://www.youtube.com/watch?v=pLdO2rJqfbY',
+          sources: [
+            { label: '실제 시험 최신 기출 복원 · 해외여행 3콤보', url: 'https://www.youtube.com/watch?v=pLdO2rJqfbY' },
+            { label: '실제 시험 복원 · 해외여행 3콤보', url: 'https://beyourself23.tistory.com/46' },
+            { label: '국내·해외여행 기출 질문 원문', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-5-%EA%B5%AD%EB%82%B4%EC%97%AC%ED%96%89%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89' }
+          ],
           connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
         },
         recycling: {
