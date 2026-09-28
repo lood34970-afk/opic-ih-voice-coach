@@ -31,6 +31,9 @@
     #opic-ih-voice-coach .oiv-dot { width: 0.72rem; height: 0.72rem; border-radius: 999px; background: var(--muted-foreground); display: inline-block; }
     #opic-ih-voice-coach .oiv-dot.live { background: var(--viz-series-1); box-shadow: 0 0 0 0.35rem color-mix(in srgb, var(--viz-series-1) 20%, transparent); }
     #opic-ih-voice-coach .oiv-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(230px, 0.8fr); gap: var(--gap); }
+    #opic-ih-voice-coach #oiv-source { grid-column: 1 / -1; line-height: 1.5; }
+    #opic-ih-voice-coach #oiv-source a { color: var(--viz-series-1); }
+    #opic-ih-voice-coach .oiv-build { position: fixed; right: max(0.75rem, env(safe-area-inset-right)); bottom: max(0.75rem, env(safe-area-inset-bottom)); z-index: 20; padding: 0.35rem 0.6rem; border: 1px solid var(--border); border-radius: 999px; background: color-mix(in srgb, var(--card) 92%, transparent); color: var(--muted-foreground); font-size: 0.72rem; line-height: 1; box-shadow: 0 0.35rem 1rem rgb(0 0 0 / 24%); backdrop-filter: blur(8px); }
     #opic-ih-voice-coach .oiv-call { min-height: 18rem; display: grid; gap: 0.85rem; align-content: center; text-align: center; }
     #opic-ih-voice-coach .oiv-avatar { width: 4.8rem; height: 4.8rem; border-radius: 999px; margin: 0 auto; display: grid; place-items: center; background: color-mix(in srgb, var(--viz-series-1) 22%, var(--card)); color: var(--foreground); }
     #opic-ih-voice-coach .oiv-avatar i { width: 2.1rem; height: 2.1rem; }
@@ -81,13 +84,12 @@
     <div class="oiv-top">
       <div class="oiv-status" aria-live="polite">
         <span id="oiv-dot" class="oiv-dot" aria-hidden="true"></span>
-        <span id="oiv-status">설문 13개 + 돌발 8개 연습 대기 중</span>
+        <span id="oiv-status">내 설문 13개 전용 연습 대기 중</span>
       </div>
       <div class="viz-controls" aria-label="OPIc IH 연습 선택">
         <label class="form-label">문제 유형
           <select id="oiv-topic" class="form-select">
-            <option value="random" selected>실전 랜덤 (설문 + 돌발)</option>
-            <option value="surprise">돌발 주제 랜덤</option>
+            <option value="survey" selected>내 설문 주제만 랜덤</option>
             <optgroup label="내 설문 주제 13개">
               <option value="home">가족과 아파트 거주</option>
               <option value="movie">영화 보기</option>
@@ -102,16 +104,6 @@
               <option value="walking">걷기</option>
               <option value="domestic">국내 여행</option>
               <option value="overseas">해외 여행</option>
-            </optgroup>
-            <optgroup label="돌발 주제 8개">
-              <option value="recycling">재활용·환경</option>
-              <option value="weather">날씨·계절</option>
-              <option value="transportation">대중교통</option>
-              <option value="banking">은행</option>
-              <option value="appointment">약속·예약</option>
-              <option value="hotel">호텔</option>
-              <option value="restaurant">음식점·음식 배달</option>
-              <option value="health">건강</option>
             </optgroup>
           </select>
         </label>
@@ -130,7 +122,7 @@
       <section class="card oiv-call" aria-label="OPIc IH 마이크 코치">
         <div class="oiv-avatar"><i data-lucide="mic" aria-hidden="true"></i></div>
         <div>
-          <div id="oiv-line" class="oiv-line">설문 13개와 돌발 8개, 총 525문항에서 실제처럼 한 주제 3연속 질문이 나옵니다.</div>
+          <div id="oiv-line" class="oiv-line">내 설문 13개에 해당하는 출처 확인 기출 복원·출제 예제만 연습합니다.</div>
           <div id="oiv-subline" class="oiv-subline text-small">답변은 마이크로만 합니다. 텍스트 입력은 없습니다.</div>
         </div>
         <div class="oiv-time" id="oiv-time">00:00</div>
@@ -147,7 +139,10 @@
         <div class="text-small text-muted">질문과 답변 기록</div>
         <div id="oiv-log" class="oiv-log" aria-live="polite"></div>
       </section>
+      <div id="oiv-source" class="text-small text-muted">모든 문항은 공개된 OPIc 기출 복원·출제 예제의 원문 질문이며, 명백한 오탈자만 정리했습니다.</div>
     </div>
+
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.1.0 · build 2026.09.28.1</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -209,245 +204,366 @@
         home: {
           label: 'Living with family in an apartment',
           questions: [
-            'You said that you live with your family in an apartment. Describe your apartment in detail and tell me about your favorite room.',
-            'What do you and your family usually do together at home? Walk me through a typical day in your apartment.',
-            'Tell me about a memorable experience you had with your family at home. What happened, and why do you remember it?'
+            'I would like to know where you live. Describe your house in detail. What does it look like? How many rooms do you have?',
+            'I would like to know where you live. Which is your favorite room at home? What does it look like? What do you mostly do there?',
+            'Please tell me about your living room. What things are in your living room? Name the things you see in your living room.',
+            'Tell me about the house or apartment you lived in when you were a child. How was it different from the one you live in now? What are the similarities and differences?',
+            'Tell me about a change you made to your home. What was the change and why did you make that change? How did your home look afterwards? Give me all the details.',
+            'Please tell me about an experience of moving into a new house. Did anything interesting or unexpected happen while you were moving?',
+            'Talk about the problems people have when they rent a house or an apartment. Why do those problems occur and how do people solve those problems?',
+            'What are the causes of the housing shortage in your community? Tell me some issues that people talk about related to the housing shortage.',
+            'Now, tell me about the problems that happen at your home. What are those problems? Why do they occur? How do people deal with those problems? How do you personally deal with those problems?'
+          ],
+          sources: [
+            { label: '사는 곳 기출 정리 · 실제 시험 복원', url: 'https://babeseoul.tistory.com/45' },
+            { label: '거주지 기출 질문 정리', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-1-%EA%B1%B0%EC%A3%BC%EC%A7%80' }
           ],
           connectors: ['I live with...', 'What I like most is...', 'At home, we usually...']
         },
         movie: {
           label: 'Watching movies',
           questions: [
-            'What kinds of movies do you enjoy watching? Tell me when, where, and how you usually watch them.',
-            'Tell me about your favorite movie, actor, or director. What makes that person or movie special to you?',
-            'Describe a memorable time when you watched a movie. Who were you with, and what happened?'
+            'You indicated that you like to go to the movies. What is your favorite genre of movies? Why do you like those types of movies?',
+            'I\'d like you to tell me about one of the most memorable movies you\'ve seen. What is the story about? Who was the main actor or actress? How did the movie affect you?',
+            'Have you ever been hindered by someone or something while you were watching a movie? How exactly did this person bother you? Tell me about the situation in detail.',
+            'Who is your favorite movie actor or actress? Tell me a specific story about something this actor did that you heard about in the news. Begin the story with some details about the actor or actress and then tell me all the details of what happened.',
+            'Who do you usually go to the movies with? Are there any special reasons that you watch movies with this person? What do you do with this person after seeing a movie? What do you usually do before you go to a movie theater? What do you do after watching the movie?',
+            'When was the first time that you watched a movie at the movie theater? What is your memory about that time? How has your movie taste changed since then?',
+            'What types of movies do you like best? Where do you enjoy going to see a movie? Describe your favorite movie theater.',
+            'Let’s talk about the activities you usually do at the movie theater. What kinds of things do you do before, during, and after the movie?',
+            'When and where did you see a movie most recently? What kind of movie did you watch? Did you watch it alone or with other people?'
+          ],
+          sources: [
+            { label: '영화보기 주요 기출', url: 'https://babeseoul.tistory.com/46' },
+            { label: '설문항목 3콤보 문제', url: 'https://opicmanager.tistory.com/entry/%EC%98%A4%ED%94%BDOPIc-%EB%AC%B4%ED%83%88%ED%95%98%EA%B8%B0%EC%98%A4%ED%94%BD-%EB%AC%B8%EC%A0%9C-%EC%9C%A0%ED%98%95-3-%EC%84%A4%EB%AC%B8%ED%95%AD%EB%AA%A9-3%EC%BD%A4%EB%B3%B4-%EB%AC%B8%EC%A0%9C' }
           ],
           connectors: ['I am really into...', 'The movie was about...', 'What I remember most is...']
         },
         park: {
           label: 'Going to parks',
           questions: [
-            'Describe a park you often visit. Where is it, what does it look like, and what can people do there?',
-            'What do you usually do when you go to a park? Tell me about your routine from beginning to end.',
-            'Tell me about a memorable or unexpected experience you had at a park.'
+            'You indicated that you like to go to parks. Tell me about one of the parks that you often visit. What does it look like? Tell me what people do there at the park.',
+            'Tell me about a memorable incident that has happened at the park.',
+            'When do you go to the park? What do you usually do there? Who with?',
+            'How did you first start going to parks? What made you visit parks in the first place? Why do you go to parks now? Tell me how your interest in going to the parks changed over the years. Give me all the details.',
+            'Pick two popular parks that you know of and tell me about their similarities and differences. Which one do you prefer and why?',
+            'I\'d like to know about one of the issues today\'s parks are faced with. What are the challenges public parks are faced with these days? Discuss what has caused these concerns. What kind of steps need to be taken to address these issues?',
+            'You indicated in the survey that you go to the park. How often do you go to the park? Who do you go with? What do you usually do in the park?',
+            'Please tell me about one of your experiences when you went to a park recently. Give me a full story of what you did from the moment you arrived at the park till you left.',
+            'Can you tell me about people you see at the park that you often go to? What kind of people are there and what do they usually do there? Are there many children or old people?'
+          ],
+          sources: [
+            { label: '공원가기 주요 기출', url: 'https://babeseoul.tistory.com/48' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['There is...', 'I usually go there to...', 'One day...']
         },
         performance: {
           label: 'Watching performances',
           questions: [
-            'What kinds of performances do you enjoy watching? Tell me how often you watch them and who you go with.',
-            'Describe a theater or performance venue you have visited. What was the atmosphere like?',
-            'Tell me about the most memorable performance you have seen. What happened on stage, and how did you feel?'
+            'You indicated in the survey that you enjoy watching performances. Tell me about a performance hall that you like. Where is it located? Why do you like to go there? I’d like to know what the performance hall is like inside and out.',
+            'Tell me about a performance you recently watched. Where was it and who did you go with? What was the experience like?',
+            'I’d like to know the most memorable performance you have ever seen. When was it? What kind of performance was it? Why was it so memorable to you? Tell me about it in as much detail as possible.',
+            'What kind of performances do you like to go to? Why do you like that performance? How frequently do you go to see the performance?',
+            'What play have you seen most recently? What was the play about? How was it? Who did you go to the theater with? Tell me with a lot of details.',
+            'I’d like to know about one of your memorable experiences at a play. Tell me what exactly happened. Why was the play so memorable? Tell me about the experience with a lot of details.'
+          ],
+          sources: [
+            { label: 'OPIc Advanced 공략', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/5894a93bd0b64f13bd65bc9996c8b85d1683686391.pdf' },
+            { label: '공연 기출 복원', url: 'https://blashblash.tistory.com/238' },
+            { label: '공연 기출 질문 정리', url: 'https://dobusiness.tistory.com/18' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['I enjoy watching...', 'The venue was...', 'The best part was...']
         },
         concert: {
           label: 'Going to concerts',
           questions: [
-            'Tell me about the kinds of concerts you like to attend. Who do you usually go with, and what do you do there?',
-            'Describe the atmosphere at a concert you enjoyed. Include the music, the crowd, and the venue.',
-            'Tell me about a memorable concert experience. What made it special or unexpected?'
+            'You indicated in your survey you like to go to concerts. Tell me about what kind of concert you like to go to. Who do you go with? Why do you like to go to concerts? Tell me everything in detail.',
+            'What was the most memorable concert you’ve watched?',
+            'Do you have any unexpected or special memories from when you went to a concert? Whose concert was it? When did you go? What happened? Why was it so special to you? Explain your experience in detail.',
+            'You said that you go to a concert hall in our survey. Please describe the concert hall you often go to for me.',
+            'How often do you go to a concert? When do you normally go? Who do you go there with? Tell me all the details.',
+            'I’d like to know about one of your memorable experiences at a concert. Tell me what exactly happened. Why was the concert so memorable? Tell me about the experience with a lot of details.'
+          ],
+          sources: [
+            { label: 'OPIc Advanced 공략', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/5894a93bd0b64f13bd65bc9996c8b85d1683686391.pdf' },
+            { label: '콘서트 기출 질문 정리', url: 'https://dobusiness.tistory.com/18' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['I went to see...', 'The atmosphere was...', 'The highlight was...']
         },
         game: {
           label: 'Playing games',
           questions: [
-            'What games do you like playing? Describe how, when, and with whom you usually play them.',
-            'Tell me about a game you especially enjoy. Explain its rules and what makes it fun.',
-            'Tell me about a memorable or exciting moment you had while playing a game.'
+            'Let’s talk about a game you like to play. How often do you play the game? When and where do you play the game? Why do you like playing that game?',
+            'What is your favorite game? Why do you like it? What are the rules?',
+            'How did you become interested in playing games at first? How did you learn it?',
+            'Can you tell me about the last time you played games? What did you play? Did you win or lose the game?',
+            'You have indicated that you play games frequently. I think you have experienced something interesting or memorable while playing games. Please tell me about it in as much detail as possible.',
+            'You indicated in the survey that you like to play games. Can you tell me about a game you play most often?'
           ],
+          sourceLabel: 'OPIc 게임하기 기출 문항집',
+          sourceUrl: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html',
           connectors: ['I usually play...', 'The goal of the game is...', 'At that moment...']
         },
         tv: {
           label: 'Watching TV',
           questions: [
-            'What kinds of TV programs do you enjoy watching? Tell me when and where you usually watch them.',
-            'Tell me about your favorite TV show or series. What is it about, and why do you like it?',
-            'Describe a memorable program or episode you watched on TV.'
+            'You indicated in the survey you like to watch TV shows. What kind of programs or TV shows do you usually like to watch? How much TV do you watch in a day?',
+            'Pick one of your favorite TV shows or movies and tell me about your favorite actor or actress in the show or movie. What kind of role does the actor or actress play in the show or movie?',
+            'Let’s talk about an interesting or memorable TV show or movie. What kind of show or movie was it? Who were your favorite actors or actresses? Why was it so memorable to you? Tell me about all the things you can remember about the memorable show or movie in as much detail as possible.',
+            'I’d like to give you a situation and ask you to act it out. Let’s imagine that you are planning to rent a DVD player in order to watch some movies. Call the shop and ask three or four questions about renting it.',
+            'I’m sorry, but you have a problem you need to resolve. You rented the DVD player and arrived at home, but you notice that it is not working properly. Call the shop to explain the situation and offer some alternatives to address this problem.',
+            'Very good. That’s the end of the situation. Have you ever experienced a problem with an item or a device you borrowed or rented from someone? If so, when did it happen? What kind of item or device was it? What was the problem? How did you handle that situation? Please tell me about the memorable experience in as much detail as possible.',
+            'You indicated in the survey you like to watch TV shows. Let’s talk about your favorite TV shows and movies. Why do you enjoy watching those shows or movies? Tell me all the details.',
+            'I enjoy the Super Star K reality show on TV. In order to find out more about this show, ask me three or four additional questions.',
+            'You indicated in your survey that you like to watch TV. What is your favorite TV program? What genre is it, and what is the main idea of the program? Please tell me about the program, and describe why you like it in detail.'
+          ],
+          sources: [
+            { label: 'TV 시청 Background Survey 기출 예제', url: 'https://opicmanager.tistory.com/entry/%EB%8B%A4%EB%A6%84%EC%97%90%EB%93%80-%EC%98%A4%ED%94%BDOPIc-Background-survey-%EC%97%85%EB%8D%B0%EC%9D%B4%ED%8A%B8-%EC%95%88%EB%82%B4TV-%EC%8B%9C%EC%B2%AD' },
+            { label: 'Online OPIc Advanced', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/Online_OPIc_Advanced1_Samsung.pdf' }
           ],
           connectors: ['I usually watch...', 'The show is about...', 'My favorite episode was...']
         },
         music: {
           label: 'Listening to music',
           questions: [
-            'What kind of music do you like listening to? When and where do you usually listen to it?',
-            'Tell me about your favorite singer, band, or song. Why do you like it?',
-            'Describe a memorable experience related to music.'
+            'You indicated that you like to listen to music. What type of music do you like listening to? Plus, who is your favorite singer or composer? What is special about his or her music?',
+            'When and where do you like to listen to music? Why do you listen to music?',
+            'Tell me about a time when you went to listen to some live music. Perhaps it was at a concert or a live cafe. What was the mood like and how did you like the music you listened to there?',
+            'How did you first get interested in music? What kind of music did you listen to when you were young? How was that music different from the music you listen to today?',
+            'What kind of music did you listen to when you were young? How was that music different from the music you listen to today? How has your interest in music changed over the years?',
+            'Tell me about an unpleasant incident you had related to music. What was the problem? What exactly happened? How did you deal with the situation? Give me all the details from beginning to end.',
+            'When and where do you usually listen to music? How do you normally listen to music, with an MP3 or a CD player? Tell me in detail.',
+            'You have answered in the Background Survey that you like to listen to music. What kind of music do you like the best? Do you like rock and roll or dance music? Tell me why.',
+            'You indicated in your survey that you like listening to music. I’d like to know about one of the singers you like the best. Explain your favorite singer to me and some of his or her features.'
+          ],
+          sources: [
+            { label: '음악감상·공연·콘서트 주요 기출', url: 'https://babeseoul.tistory.com/47' },
+            { label: '음악 기출 질문 정리', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-3-%EC%9D%8C%EC%95%85' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['I am really into...', 'Whenever I...', 'It makes me feel...']
         },
         pet: {
           label: 'Taking care of a pet',
           questions: [
-            'Tell me about your pet. What does it look like, and what is its personality like?',
-            'Describe your daily routine with your pet from morning to night.',
-            'Tell me about a funny, difficult, or memorable experience you had with your pet.'
+            'You indicated in the survey that you are a pet owner. Can you describe your pet in as much detail as possible?',
+            'Please act out the following situation. You are hoping to care for a pet in your home. Can you talk on the phone with a local pet shop and ask them three or four questions about the pet you wish to adopt?',
+            'That’s the end of the situation. Have you ever tried to adopt a pet before? Tell me about that experience. What steps did you have to take and what happened in the end?',
+            'You indicated in the survey that you have a pet. How did you get to keep your pet? Tell me about when you first got your pet. What kind of pet was it?',
+            'You indicated in the survey that you have a pet. Can you describe a memorable experience you had with your pet?',
+            'Tell me about what you do for your pets. Do you feed and clean them? What else do you do for your pets?',
+            'Have you ever had any problems with your pet? Please tell me a story about a problem you once had.',
+            'While you are caring for a pet, it becomes sick. Contact your friend to explain what has happened. Provide a detailed explanation of what is wrong with the pet and discuss how to solve this problem.',
+            'Tell me about your pet. What kind of pet is it? What does it look like? Give as many details as possible.'
+          ],
+          sources: [
+            { label: '애완동물 OPIc 빈출·롤플레이', url: 'https://www.koreatimes.co.kr/learningenglish/hackerstoeic/20210521/hackers-opic-lets-get-ihal-2021-may' },
+            { label: 'OPIc Question Sample', url: 'https://www.scribd.com/document/1052397532/A-Opic-Question-Sample2' }
           ],
           connectors: ['My pet is...', 'Every day, I...', 'One funny thing is...']
         },
         jogging: {
           label: 'Jogging',
           questions: [
-            'Tell me about your jogging routine. Where, when, and how often do you usually jog?',
-            'Describe your favorite place to go jogging. What does the route look like?',
-            'Tell me about a memorable or unexpected experience you had while jogging.'
+            'Where do you often go to for jogging? Where is it located? What does it look like? Describe your favorite place for jogging in detail.',
+            'You indicated in the survey that you like to go jogging. Can you tell me about the social, physical, and mental benefits of jogging? What are the advantages of jogging? Tell me in detail.',
+            'How did you get into jogging initially? What made you continue? Tell me about your motivation to try and continue in as much detail as possible.',
+            'You have responded that you jog. Why do you like to jog? How did you first become interested in jogging? What was the purpose of jogging?',
+            'You have indicated that you jog frequently. How often do you usually go jogging? When and where do you usually jog? Tell me about it in as much detail as possible.',
+            'Have you had any unforgettable experiences when jogging? If so, when was it and where were you jogging? What things made it unforgettable? Tell me about the experience in as much detail as you can.',
+            'Tell me about the most interesting place you\'ve ever gone for a jog at. Where was it? Why was this place so interesting? Who did you go with? What was your time there like?',
+            'What clothing do you wear when you go jogging? Can you tell me what clothes you like to wear during different seasons of the year? Please describe them in detail.',
+            'What do you have to consider when you go jogging? What can you do to avoid an injury?'
+          ],
+          sources: [
+            { label: '걷기·조깅 주요 기출', url: 'https://babeseoul.tistory.com/51' },
+            { label: '조깅 기출 질문 정리', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-4-%EA%B1%B7%EA%B8%B0%EC%82%B0%EC%B1%85%ED%95%98%EA%B8%B0%EC%A1%B0%EA%B9%85%ED%95%98%EA%B8%B0' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['I usually jog...', 'My favorite route is...', 'While I was jogging...']
         },
         walking: {
           label: 'Walking',
           questions: [
-            'Tell me about your walking routine. Where do you usually go, and how often do you walk?',
-            'Describe your favorite place to take a walk. What can you see and hear there?',
-            'Tell me about a time when something memorable happened while you were taking a walk.'
+            'You indicated in the survey that you like walking. I\'d like to know about your favorite place to go walking. Why do you like that particular place? Please describe this place in detail.',
+            'What do you take with you when you walk? Besides that, I want to know how clothes vary from season to season when you go for a walk. Please tell me about these things.',
+            'You said that you like to walk. What is the difference in your body condition from when you first started until now? Also, how has your mental attitude changed since you started walking? Tell me about these changes?',
+            'Please describe a memorable experience you had while walking. Explain what happened and why it was so memorable. Provide as many details as you can.',
+            'What do you like about walking? Why did you first become interested in it? How does walking make you feel?',
+            'How far do you normally walk? How long does it usually take you to go for a walk? Tell me about your typical walking routine from the beginning to the end.',
+            'Let’s talk about your typical walking outfit. What shoes do you usually wear? Tell me in detail.',
+            'You said you like walking. I’d like to know how often and when you usually walk. Where do you usually go to walk? With whom do you go? I would like to know why you like walking. Tell me about the reasons in detail.',
+            'Do you remember the first time you walked as a hobby? How did you start walking as a hobby? Did anyone influence you? Tell me everything in as much detail as possible.'
+          ],
+          sources: [
+            { label: '실제 시험 걷기 3콤보 복원', url: 'https://beyourself23.tistory.com/46' },
+            { label: '조깅·걷기 기출 질문 정리', url: 'https://hyunvely619.tistory.com/m/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-4-%EA%B1%B7%EA%B8%B0%EC%82%B0%EC%B1%85%ED%95%98%EA%B8%B0%EC%A1%B0%EA%B9%85%ED%95%98%EA%B8%B0' },
+            { label: 'Online OPIc Advanced', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/Online_OPIc_Advanced1_Samsung.pdf' }
           ],
           connectors: ['I usually take a walk...', 'It helps me...', 'One day...']
         },
         domestic: {
           label: 'Domestic travel',
           questions: [
-            'Tell me about a domestic trip you took. Where did you go, who did you go with, and what did you do?',
-            'Describe a place in Korea that you recommend visiting. What makes it special?',
-            'Tell me about a memorable problem or unexpected event you experienced while traveling in Korea.'
+            'In your background survey, you indicated that you enjoy domestic travel. Where do you like to visit? Which do you prefer, mountains or beaches? Describe the place you like to visit and why you like to go there.',
+            'Unexpected things can happen on trips. Talk about an unforgettable incident that happened on a trip. Why was the experience so memorable? Give me all the details.',
+            'Talk about a trip you went on in your childhood. What do you remember about that trip? Where did you go, and whom did you go with? What made the trip special?',
+            'What are some things that you do to prepare for trips?',
+            'You indicated that you enjoy domestic travel. Where do you like to visit? Describe the place you would like to visit and why you love to go there.',
+            'Unexpected things can happen while you are traveling. Talk about an unforgettable happening on a trip. Why was the experience so memorable?',
+            'Can you describe for me some of the things that you enjoy doing on your vacation?',
+            'Please describe one of your favorite trips. Where did you go and where did you stay? Why is this particular trip so memorable? Include as many details as possible.',
+            'What do you usually bring when you travel? Name all the things you pack in your suitcase.'
+          ],
+          sources: [
+            { label: '국내·해외여행 주요 기출', url: 'https://babeseoul.tistory.com/52' },
+            { label: '여행 기출 질문 정리', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-5-%EA%B5%AD%EB%82%B4%EC%97%AC%ED%96%89%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['I went to...', 'The highlight was...', 'Unfortunately...']
         },
         overseas: {
           label: 'Overseas travel',
           questions: [
-            'Tell me about an overseas trip you took. Where did you go, who did you go with, and what did you do?',
-            'Describe a foreign city or country that left a strong impression on you.',
-            'Tell me about a memorable problem or unexpected event you experienced while traveling abroad.'
+            'You responded in our survey that you have been overseas before. Which country did you visit recently? Please describe one of the countries or cities you have been to before?',
+            'You indicated that you like to travel abroad. Tell me about the things that you should not forget to do when travelling abroad.',
+            'During an overseas trip, you may have had a memorable, humorous, challenging, or interesting memory. When and where did it happen? What did you do at that time, and why was it so memorable for you? Please tell me everything you remember.',
+            'When people think about traveling to foreign countries, what are some things they are most interested in? Why do you think these things are of such interest to travelers?',
+            'Tell me about a foreign country you visited when you were young. What was special? What do you remember?',
+            'Tell me about where tourists go and what they do on their overseas trip. Give me all the details.',
+            'Tell me a story that you experienced when traveling overseas. What happened and what made that incident memorable?',
+            'Which country or city do you want to travel to in the future? Why do you want to go there? Is there any special reason for that?',
+            'I’m going to give you a situation and ask you to act it out. Let’s assume that you are planning to go overseas during your vacation. Call one of the travel agencies you know and ask three or four questions about the overseas trip you want to go on.'
+          ],
+          sources: [
+            { label: '실제 시험 해외여행 3콤보 복원', url: 'https://beyourself23.tistory.com/46' },
+            { label: '여행 기출 질문 정리', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-5-%EA%B5%AD%EB%82%B4%EC%97%AC%ED%96%89%ED%95%B4%EC%99%B8%EC%97%AC%ED%96%89' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['When I traveled to...', 'What surprised me was...', 'On the other hand...']
         },
         recycling: {
           label: 'Recycling and the environment',
           questions: [
-            'Tell me how people recycle where you live. What items do they separate, and where do they take them?',
-            'Describe your usual recycling routine at home from sorting the waste to throwing it away.',
-            'Tell me about a time when you had a problem or saw something unusual while recycling.'
+            'Tell me about recycling in your country.',
+            'How do you recycle at home? How often do you recycle?',
+            'Tell me about an unforgettable experience you had while recycling.',
+            'Tell me how you recycle at home. When do you recycle? How often do you take recyclable items out? Tell me all the processes in detail.',
+            'I would like to know how recycling is practiced in your country. What do people do when they recycle? Tell me how things are recycled.',
+            'Tell me what recycling was like when you were a kid. Describe what it was like and what you did.',
+            'How was the recycling you practiced when you were young? How is it different from what you do today? Please give me all the details.',
+            'Are there any issues regarding recycling? Have you seen any news related to recycling recently? Give me all the details about any issues on recycling.',
+            'Sometimes there are some problems when you recycle. Tell me about your memorable experience related to recycling.'
+          ],
+          sources: [
+            { label: 'OPIc Intermediate Mid · 돌발 주제 예제', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/OPIc_Intermediate_Mid_2017.pdf' },
+            { label: '재활용 기출 질문 정리', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-12-%EC%9E%AC%ED%99%9C%EC%9A%A9' }
           ],
           connectors: ['In my apartment...', 'First, I separate...', 'The problem was...']
         },
         weather: {
           label: 'Weather and seasons',
           questions: [
-            'Tell me about the weather and seasons in Korea. What is each season usually like?',
-            'What is your favorite season, and what do you usually do when the weather is like that?',
-            'Tell me about a time when unusual or severe weather changed your plans.'
+            'I would like to know about the weather in your country. What is it like in each season? Please describe in detail.',
+            'Have you ever experienced a memorable moment related to weather? Please tell me what happened and why it is memorable.',
+            'How is the weather today where you live? What are you wearing today? Please tell me every detail about what the weather is like and what you are wearing now.',
+            'Are there any changes in the weather or seasons in your country? How has the weather or seasons changed since you were a child? Give me as many details as you can.',
+            'How is the weather these days? Is it hot or is it cold? How often does it rain? Use as many details as possible.',
+            'Tell me about an unexpected incident related to severe weather. What was the problem and how did you deal with the situation? What made that experience unforgettable to you?'
           ],
+          sourceLabel: '날씨·계절 기출 질문 정리',
+          sourceUrl: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-15-%EB%82%A0%EC%94%A8%EA%B3%84%EC%A0%88',
           connectors: ['In Korea...', 'My favorite season is...', 'Because of the weather...']
         },
         transportation: {
           label: 'Public transportation',
           questions: [
-            'Describe the public transportation system where you live. What types are available, and which one do you use most?',
-            'Walk me through your usual trip on public transportation from beginning to end.',
-            'Tell me about a memorable problem you experienced while using public transportation and how you handled it.'
+            'Tell me about public transportation in your country. Which type of public transportation do you prefer to use? Why do you like public transportation?',
+            'Transportation systems have been improved. Have there been any changes to transportation in your country since you were young? What are the changes between the past and the present?',
+            'Sometimes riding the subway or bus can be uncomfortable. Have you ever had any problems while taking public transportation? What happened? How did you deal with it?',
+            'What do you do when you use public transportation? Tell me every detail when you use it from start to end.',
+            'When was the last time you used a different form of transportation? Was it your first time using that transportation? Where were you going and what were you planning to do? Tell me about the memorable experience in as much detail as possible.',
+            'What do people usually do when they use public transportation? When do they usually use it? Why do they use it?',
+            'What kind of transportation do you use when you go to school or work? Tell me about your typical morning routine and commute with all the details.',
+            'Let’s talk about the forms of transportation in your area. What kind of transportation is available? Please give me every detail.',
+            'Have you noticed any changes in your city\'s transportation system? What are some changes you have seen? Are all the changes improvements? Tell me about some of the changes in as much detail as possible.'
+          ],
+          sources: [
+            { label: '교통 돌발 기출 질문 정리', url: 'https://mansour.tistory.com/entry/transportation-il-im1' },
+            { label: '교통수단 기출 질문 정리', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-14-%EA%B5%90%ED%86%B5%EC%88%98%EB%8B%A8' },
+            { label: 'Online OPIc Advanced', url: 'https://kr.object.ncloudstorage.com/ebook/pdf/Online_OPIc_Advanced1_Samsung.pdf' }
           ],
           connectors: ['I usually take...', 'First, I...', 'One time...']
         },
         banking: {
           label: 'Banks and banking',
           questions: [
-            'Tell me about banks in your country and the banking services people commonly use.',
-            'How do you usually handle your banking? Describe what you do online or when you visit a bank.',
-            'Tell me about a time when you had a problem with a bank transaction or banking service.'
+            'People go to the bank for many reasons. Why do people go to the bank in your country? Where are they? Please give me as many details as possible.',
+            'Tell me about the banks in your country. Where are they located? When do they open and close? What do they look like? Describe in detail.',
+            'When was the last time you went to a bank? What did you do? Why did you go there? Please describe your experience in detail.',
+            'Tell me about the bank you go to. Where is it located? What is it like? Please give me all the details.',
+            'Banks have changed a lot over the years. What were banks like when you were young? How are they different from what they look like now?',
+            'What do you do from the moment you walk into the bank until you walk out? Tell me every detail about when you visit the bank.',
+            'What do people usually do at the bank? Why do you go to the bank and what do you usually do there?',
+            'Problems can occur once you visit the bank. Maybe you could have forgotten to take your ID card. Tell me about a problem you had at a bank. Tell me about the circumstances as vividly as possible. How did you solve the problem?',
+            'What kind of banking services do you usually use? Why is it beneficial for you to use those services?'
+          ],
+          sources: [
+            { label: '은행 돌발 기출 질문 정리', url: 'https://mansour.tistory.com/entry/bank-il-im1' },
+            { label: '은행 기출 질문 정리', url: 'https://hyunvely619.tistory.com/entry/OPIC-%EC%98%A4%ED%94%BD-AL-%EC%9C%A0%ED%98%95%EB%B3%84-%EA%B8%B0%EC%B6%9C-%EC%A7%88%EB%AC%B8-%EC%A0%95%EB%A6%AC-13-%EC%9D%80%ED%96%89' },
+            { label: 'OPIc IM 120 Questions', url: 'https://pdfcoffee.com/opic-book-im-120q-pdf-free.html' }
           ],
           connectors: ['Most people...', 'I usually use...', 'The issue was...']
         },
         appointment: {
           label: 'Appointments and reservations',
           questions: [
-            'What kinds of appointments or reservations do you usually make, and how do you make them?',
-            'Describe the steps you follow when making a reservation by phone or online.',
-            'Tell me about a time when you had to cancel or change an appointment unexpectedly.'
+            'People make many appointments. What kinds of appointments do you usually make with people? Whom do you make them with? What do you usually do with that person?',
+            'What do you usually do when you make an appointment? What are the steps you take and what do you consider when you make an appointment? Please provide as many details as possible.',
+            'Tell me about one experience when you had to cancel an appointment you made. What happened? Why did you have to cancel the appointment and how did you deal with it?'
           ],
+          sourceLabel: '약속 돌발 기출 질문 정리',
+          sourceUrl: 'https://mansour.tistory.com/entry/appointmentsILIM1',
           connectors: ['I usually make...', 'The first thing I do is...', 'I had to change it because...']
         },
         hotel: {
           label: 'Hotels',
           questions: [
-            'Describe a hotel you have stayed at. Where was it, and what were its rooms and facilities like?',
-            'What do you usually do before and after checking into a hotel?',
-            'Tell me about a memorable problem or request you had during a hotel stay.'
+            'Tell me about some famous hotels in your country. What do they look like? Where are they usually located? Describe them in detail.',
+            'Please tell me what you do when you arrive at a hotel. What steps do you take? Tell me everything from beginning to end.',
+            'When was the last time you stayed in a hotel? Where did you stay? Why did you go there? What did you do at the hotel?'
           ],
+          sourceLabel: '호텔 돌발 기출 질문 정리',
+          sourceUrl: 'https://mansour.tistory.com/entry/hotel-il-im1',
           connectors: ['The hotel was located...', 'When I check in...', 'I called the front desk...']
         },
         restaurant: {
           label: 'Restaurants and food delivery',
           questions: [
-            'Tell me about a restaurant you like. What kind of food does it serve, and what is the atmosphere like?',
-            'Describe how you usually order food at a restaurant or through a delivery app.',
-            'Tell me about a time when there was a problem with your meal or food delivery and how you solved it.'
+            'Tell me about a restaurant you often go to. What does it look like? Where is it? Give me a description with lots of details.',
+            'What kind of food does the restaurant you go to offer? Tell me about your favorite food. What is it? Give as many details as you can.',
+            'When was the last time you ate out? Where did you go? Who did you go there with? What menu did you eat at the restaurant?'
           ],
+          sourceLabel: '식당 돌발 기출 질문 정리',
+          sourceUrl: 'https://mansour.tistory.com/entry/restaurant-il-im1',
           connectors: ['My favorite restaurant...', 'I usually order...', 'When the food arrived...']
         },
         health: {
           label: 'Health and wellness',
           questions: [
-            'What do people usually do to stay healthy? Tell me about healthy habits that are common in your country.',
-            'Describe your own routine for staying healthy, including exercise, food, or rest.',
-            'Tell me about a time when you felt unwell or had to change your routine because of your health.'
+            'Tell me about a healthy person you have met. What does he or she look like? What kind of food does he or she usually eat for health? Please explain in detail.',
+            'What do you do to stay healthy? What kind of exercise do you usually do? Explain what you do in detail.',
+            'Have you ever had to stop doing something for your health? What was it that you had to give up? What about now? Give as many details as you can.'
           ],
+          sourceLabel: '건강 돌발 기출 질문 정리',
+          sourceUrl: 'https://mansour.tistory.com/entry/health-il-im1',
           connectors: ['To stay healthy...', 'I try to...', 'At that time...']
         }
       };
-      root.querySelector('#oiv-profile').textContent = '고정 설문: ' + Object.values(surveyProfile).join(' · ') + ' · 돌발 8개 혼합';
-      const questionTemplates = [
-        "Let's talk about {topic}. First, describe it in as much detail as you can. What is it like, and what makes it different from other things?",
-        "I'd like to know more about {topic}. Tell me what you usually do, when you do it, and who you are usually with.",
-        "Give me a full description of a place, person, object, or situation connected to {topic}. Try to include specific details.",
-        "What is the first thing that comes to mind when you think about {topic}? Explain why it is meaningful to you.",
-        "Tell me about your personal preference related to {topic}. What exactly do you like, and what do you not like?",
-        "Walk me through your normal routine related to {topic}, from the beginning to the end.",
-        "How often do you do something related to {topic}? Tell me about the time, place, and situation.",
-        "Tell me about the people you usually interact with when it comes to {topic}. What do you usually talk about or do together?",
-        "Describe the atmosphere or mood connected to {topic}. What sounds, sights, or feelings do you associate with it?",
-        "What are the most important things to prepare or consider when dealing with {topic}? Explain them one by one.",
-        "Now, tell me about a memorable experience you had related to {topic}. Start with when and where it happened.",
-        "Tell me about the last time you did something related to {topic}. What happened from start to finish?",
-        "Describe a time when something unexpected happened while you were dealing with {topic}.",
-        "Tell me about a time when you had a problem related to {topic}. What was the problem, and how did you solve it?",
-        "Tell me a detailed story about {topic}. Include the background, what happened, and how you felt afterward.",
-        "How was your experience with {topic} different in the past compared with now?",
-        "Compare two different ways people experience {topic}. Which one do you prefer and why?",
-        "How do young people and older people usually think about {topic}? Give examples.",
-        "What has changed the most about {topic} over the last few years?",
-        "What do you think {topic} will be like in the future? Explain your prediction.",
-        "I'm going to give you a situation. You need information about {topic}. Call someone and ask three or four questions.",
-        "Here is a situation. You have a problem related to {topic}. Explain the problem politely and ask for help.",
-        "Imagine you need to change a plan related to {topic}. Call the person involved, explain why, and suggest another option.",
-        "Imagine there was a mistake related to {topic}. Call customer service or a person in charge and request a solution.",
-        "Now let's go deeper. Why did you choose {topic} in your background survey? Give a natural and personal answer."
-      ];
-      function expandQuestionBank() {
-        Object.keys(topics).forEach(function (key) {
-          const t = topics[key];
-          const seen = {};
-          const expanded = [];
-          function add(q) {
-            if (!seen[q] && expanded.length < 25) {
-              seen[q] = true;
-              expanded.push(q);
-            }
-          }
-          t.questions.forEach(add);
-          questionTemplates.forEach(function (template) {
-            add(template.replace(/\{topic\}/g, t.label.toLowerCase()));
-          });
-          let n = 1;
-          while (expanded.length < 25) {
-            add('Follow-up question ' + n + ': give a more detailed personal example related to ' + t.label.toLowerCase() + '. What happened, and what did you learn?');
-            n += 1;
-          }
-          t.questions = expanded.slice(0, 25);
-        });
-      }
-      expandQuestionBank();
+      root.querySelector('#oiv-profile').textContent = '고정 설문: ' + Object.values(surveyProfile).join(' · ') + ' · 설문 주제만 출제';
       const els = {
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
@@ -455,7 +571,7 @@
         levelValue: root.querySelector('#oiv-level-value'), levelScale: root.querySelector('#oiv-level-scale'), levelMarker: root.querySelector('#oiv-level-marker'),
         levelMeta: root.querySelector('#oiv-level-meta'), levelReason: root.querySelector('#oiv-level-reason'),
         feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak'),
-        modelSpeak: root.querySelector('#oiv-model-speak')
+        modelSpeak: root.querySelector('#oiv-model-speak'), source: root.querySelector('#oiv-source')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -494,13 +610,12 @@
       let assessmentHistory = [];
       function topicKeys() { return allowedTopicKeys.filter(function (key) { return Boolean(topics[key]); }); }
       function isSurpriseTopic(topicKey) { return surpriseTopicKeys.indexOf(topicKey) !== -1; }
-      function isSetMode() { return els.topic.value === 'random' || els.topic.value === 'surprise'; }
+      function isSetMode() { return els.topic.value === 'survey'; }
       function pickRandomTopicKey(keys) {
         return keys[Math.floor(Math.random() * keys.length)];
       }
       function randomTopicKey(mode) {
-        if (mode === 'surprise') return pickRandomTopicKey(surpriseTopicKeys);
-        return Math.random() < 0.3 ? pickRandomTopicKey(surpriseTopicKeys) : pickRandomTopicKey(surveyTopicKeys);
+        return pickRandomTopicKey(surveyTopicKeys);
       }
       function selectedTopicKey() { return isSetMode() ? activeTopicKey : els.topic.value; }
       function topic() { return topics[selectedTopicKey()]; }
@@ -511,25 +626,25 @@
       function makeQuestionKey(topicKey, question) {
         return topicKey + ':' + topics[topicKey].questions.indexOf(question);
       }
-      function chooseFromRange(topicKey, start, end) {
+      function questionCount(keys) {
+        return keys.reduce(function (sum, key) { return sum + topics[key].questions.length; }, 0);
+      }
+      function topicCombos(topicKey) {
         const list = topics[topicKey].questions;
-        const min = Math.max(0, start);
-        const max = Math.min(list.length - 1, end);
-        let chosen = list[min];
-        for (let attempt = 0; attempt < 80; attempt += 1) {
-          const index = min + Math.floor(Math.random() * (max - min + 1));
-          const qKey = topicKey + ':' + index;
-          chosen = list[index];
-          if (recentQuestionKeys.indexOf(qKey) === -1) break;
+        const combos = [];
+        for (let index = 0; index + 2 < list.length; index += 3) {
+          combos.push(list.slice(index, index + 3));
         }
-        return chosen;
+        return combos;
       }
       function buildRealisticSet(topicKey) {
-        return [
-          chooseFromRange(topicKey, 0, 12),
-          chooseFromRange(topicKey, 13, 17),
-          chooseFromRange(topicKey, 18, 24)
-        ];
+        const combos = topicCombos(topicKey);
+        combos.sort(function (a, b) {
+          const aRecent = a.reduce(function (sum, question) { return sum + (recentQuestionKeys.indexOf(makeQuestionKey(topicKey, question)) !== -1 ? 1 : 0); }, 0);
+          const bRecent = b.reduce(function (sum, question) { return sum + (recentQuestionKeys.indexOf(makeQuestionKey(topicKey, question)) !== -1 ? 1 : 0); }, 0);
+          return aRecent - bRecent || Math.random() - 0.5;
+        });
+        return combos[0] || topics[topicKey].questions.slice(0, 3);
       }
       function pickQuestion() {
         if (isSetMode()) {
@@ -544,7 +659,7 @@
           activeTopicKey = currentSetTopicKey;
           const question = currentSetQueue.shift();
           rememberQuestion(makeQuestionKey(activeTopicKey, question));
-          return { topicKey: activeTopicKey, question: question, total: els.topic.value === 'surprise' ? surpriseTopicKeys.length * 25 : topicKeys().length * 25, remainingInSet: currentSetQueue.length, surprise: isSurpriseTopic(activeTopicKey) };
+          return { topicKey: activeTopicKey, question: question, total: questionCount(surveyTopicKeys), remainingInSet: currentSetQueue.length, surprise: false };
         }
         activeTopicKey = els.topic.value;
         currentSetQueue = [];
@@ -558,11 +673,26 @@
           if (recentQuestionKeys.indexOf(qKey) === -1) break;
         }
         rememberQuestion(qKey);
-        return { topicKey: activeTopicKey, question: list[index], total: 25, remainingInSet: 0, surprise: isSurpriseTopic(activeTopicKey) };
+        return { topicKey: activeTopicKey, question: list[index], total: list.length, remainingInSet: 0, surprise: isSurpriseTopic(activeTopicKey) };
       }
       function safe(text) { return text.replace(/[&<>"]/g, function (ch) { return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]); }); }
       function setStatus(text, live) { els.status.textContent = text; els.dot.classList.toggle('live', Boolean(live)); }
       function addLog(name, text, user) { const div = document.createElement('div'); div.className = 'oiv-bubble' + (user ? ' user' : ''); div.innerHTML = '<strong>' + safe(name) + '</strong><br>' + safe(text); els.log.appendChild(div); els.log.scrollTop = els.log.scrollHeight; }
+      function renderSource(t) {
+        els.source.textContent = '';
+        const sources = t.sources || (t.sourceUrl ? [{ label: t.sourceLabel, url: t.sourceUrl }] : []);
+        els.source.appendChild(document.createTextNode('기출·출제 예제 출처: '));
+        sources.forEach(function (source, index) {
+          if (index) els.source.appendChild(document.createTextNode(' · '));
+          const link = document.createElement('a');
+          link.href = source.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.textContent = source.label;
+          els.source.appendChild(link);
+        });
+        els.source.appendChild(document.createTextNode(' · 출처 원문 질문(명백한 오탈자만 정리)'));
+      }
       function renderLists() {
         renderFeedback('');
       }
@@ -689,10 +819,11 @@
         answerHasStarted = false;
         updateQuestionButton();
         speak(picked.question);
+        renderSource(t);
         if (isSetMode()) {
           els.subline.textContent = (picked.surprise ? '돌발 세트 ' : '설문 세트 ') + (3 - picked.remainingInSet) + '/3 · ' + t.label;
         } else {
-          els.subline.textContent = (picked.surprise ? '돌발 주제 · ' : '설문 주제 · ') + '25문항 랜덤 · ' + t.label;
+          els.subline.textContent = (picked.surprise ? '돌발 주제 · ' : '복원 기출 · ') + topicCombos(picked.topicKey).length + '콤보 · ' + picked.total + '문항 랜덤 · ' + t.label;
         }
       }
       function startMeter() { stopMeter(); meterTimer = setInterval(function () { els.meter.style.width = (18 + Math.round(Math.random() * 78)) + '%'; }, 150); }
@@ -1062,7 +1193,7 @@
       els.stop.addEventListener('click', stop);
       els.feedbackSpeak.addEventListener('click', speakFeedback);
       els.modelSpeak.addEventListener('click', speakModelAnswer);
-      els.topic.addEventListener('change', function () { activeTopicKey = isSetMode() ? (els.topic.value === 'surprise' ? surpriseTopicKeys[0] : surveyTopicKeys[0]) : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'random' ? '실전 랜덤 모드 · 돌발 약 30%' : (els.topic.value === 'surprise' ? '돌발 주제 랜덤 모드' : '선택 주제 연습 모드'), false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = isSetMode() ? surveyTopicKeys[0] : els.topic.value; currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); setStatus(els.topic.value === 'survey' ? '내 설문 13개 전용 랜덤 모드' : '선택 설문 주제 연습 모드', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       renderAssessment();
