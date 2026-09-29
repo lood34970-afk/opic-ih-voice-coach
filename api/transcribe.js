@@ -14,7 +14,7 @@
     const audioBase64 = body.audioBase64;
     const mimeType = body.mimeType || 'audio/webm';
     const filename = body.filename || filenameFromMime(mimeType);
-    const prompt = body.prompt || 'This is an English OPIc practice answer by a Korean speaker. Transcribe the spoken English accurately. Do not translate.';
+    const prompt = body.prompt || 'English OPIc practice spoken by a Korean learner. Transcribe only words that are actually spoken. Do not answer the question, infer missing content, or add a model answer.';
 
     if (!audioBase64) {
       return res.status(400).json({ error: 'audioBase64 is required.' });
@@ -32,6 +32,7 @@
       form.append('model', model);
       form.append('language', 'en');
       form.append('prompt', prompt);
+      form.append('temperature', '0');
 
       const upstream = await fetch('https://api.openai.com/v1/audio/transcriptions', {
         method: 'POST',
