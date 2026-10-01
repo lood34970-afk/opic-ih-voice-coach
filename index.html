@@ -49,6 +49,11 @@
     #opic-ih-voice-coach .oiv-helper { display: grid; gap: var(--gap); grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); }
     #opic-ih-voice-coach .oiv-feedback-head { display: flex; flex-wrap: wrap; gap: 0.55rem; align-items: center; justify-content: space-between; }
     #opic-ih-voice-coach .oiv-feedback-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.35rem; }
+    #opic-ih-voice-coach .oiv-model-answer { margin-top: 0.8rem; padding: 0.8rem; border: 1px solid var(--border); border-radius: 0.75rem; background: color-mix(in srgb, var(--muted) 32%, transparent); }
+    #opic-ih-voice-coach .oiv-model-answer[hidden] { display: none; }
+    #opic-ih-voice-coach .oiv-model-answer-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.4rem; margin-bottom: 0.45rem; }
+    #opic-ih-voice-coach .oiv-model-answer-badge { padding: 0.15rem 0.45rem; border: 1px solid var(--border); border-radius: 999px; color: var(--muted-foreground); font-size: 0.68rem; }
+    #opic-ih-voice-coach .oiv-model-answer-text { margin: 0; white-space: pre-line; line-height: 1.65; }
     #opic-ih-voice-coach ul { margin: 0.45rem 0 0; padding-inline-start: 1.1rem; color: var(--muted-foreground); }
     #opic-ih-voice-coach #oiv-feedback li { white-space: pre-line; }
     #opic-ih-voice-coach .oiv-mini-list { list-style: none; padding: 0; }
@@ -152,7 +157,7 @@
       <div id="oiv-source" class="text-small text-muted">예상·AI 생성 문항은 제외하고, 공개 기출 복원 자료에서 3문항 구성이 확인된 돌발 세트만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.5.0 · build 2026.09.30.2</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.6.0 · build 2026.10.01.1</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -183,10 +188,18 @@
           <div class="text-small text-muted">IH 피드백</div>
           <div class="oiv-feedback-actions">
             <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">해설 다시 듣기</button>
-            <button id="oiv-model-speak" type="button" class="btn btn-ghost text-small" disabled>모범답변 듣기</button>
+            <button id="oiv-model-generate" type="button" class="btn btn-ghost text-small" disabled>내 답변 기반 모범답변 만들기</button>
+            <button id="oiv-model-speak" type="button" class="btn btn-ghost text-small" disabled>AI 음성으로 듣기</button>
           </div>
         </div>
         <ul id="oiv-feedback"></ul>
+        <div id="oiv-model-answer-panel" class="oiv-model-answer" hidden>
+          <div class="oiv-model-answer-head">
+            <strong>내 답변 기반 IH 모범답변</strong>
+            <span class="oiv-model-answer-badge">OpenAI 생성 답변 · AI 음성</span>
+          </div>
+          <p id="oiv-model-answer-text" class="oiv-model-answer-text"></p>
+        </div>
       </section>
     </div>
   </div>
@@ -511,7 +524,8 @@
         levelValue: root.querySelector('#oiv-level-value'), levelScale: root.querySelector('#oiv-level-scale'), levelMarker: root.querySelector('#oiv-level-marker'),
         levelMeta: root.querySelector('#oiv-level-meta'), levelReason: root.querySelector('#oiv-level-reason'),
         feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak'),
-        modelSpeak: root.querySelector('#oiv-model-speak'), source: root.querySelector('#oiv-source')
+        modelGenerate: root.querySelector('#oiv-model-generate'), modelSpeak: root.querySelector('#oiv-model-speak'),
+        modelAnswerPanel: root.querySelector('#oiv-model-answer-panel'), modelAnswerText: root.querySelector('#oiv-model-answer-text'), source: root.querySelector('#oiv-source')
       };
       let lastQuestion = '';
       let questionIndex = 0;
@@ -541,6 +555,9 @@
       let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       let lastModelAnswer = '';
+      let lastAnsweredText = '';
+      let lastAnsweredQuestion = '';
+      let modelAnswerLoading = false;
       let feedbackSpeaking = false;
       let audioMode = '';
       let feedbackAudio = null;
@@ -798,6 +815,20 @@
       function updateQuestionButton() {
         els.question.textContent = questionCanAdvance ? (lastQuestion ? '다음 문제 듣기' : '문제 듣기') : '현재 문제 다시 듣기';
       }
+      function resetModelAnswer(clearAnswerSource) {
+        lastModelAnswer = '';
+        modelAnswerLoading = false;
+        els.modelAnswerText.textContent = '';
+        els.modelAnswerPanel.hidden = true;
+        els.modelGenerate.textContent = '내 답변 기반 모범답변 만들기';
+        els.modelSpeak.textContent = 'AI 음성으로 듣기';
+        els.modelSpeak.disabled = true;
+        if (clearAnswerSource) {
+          lastAnsweredText = '';
+          lastAnsweredQuestion = '';
+        }
+        els.modelGenerate.disabled = !lastAnsweredText;
+      }
       function nextQuestion() {
         if (!questionCanAdvance && lastQuestion) {
           speak(lastQuestion);
@@ -807,8 +838,7 @@
         }
         const picked = pickQuestion();
         const t = topic();
-        lastModelAnswer = '';
-        els.modelSpeak.disabled = true;
+        resetModelAnswer(true);
         questionIndex += 1;
         renderLists();
         questionCanAdvance = false;
@@ -911,8 +941,6 @@
       }
       async function requestDetailedFeedback(answer) {
         if (!answer) return;
-        lastModelAnswer = '';
-        els.modelSpeak.disabled = true;
         setStatus('GPT 정밀 피드백 생성 중', true);
         renderFeedbackItems(['GPT가 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조를 정밀 분석하는 중입니다.']);
         els.subline.textContent = '정밀 피드백이 생성되면 자동으로 읽어 줍니다.';
@@ -932,8 +960,6 @@
           if (!response.ok) throw new Error(data.error || 'GPT feedback failed.');
           renderFeedbackItems(data.items);
           renderAssessment(data.assessment);
-          lastModelAnswer = String(data.modelAnswer || '').trim();
-          els.modelSpeak.disabled = !lastModelAnswer;
           setStatus('GPT 정밀 피드백 완료', false);
           els.subline.textContent = '피드백을 자동으로 읽는 중입니다. 피드백 정지를 누르면 멈춥니다.';
           if ('speechSynthesis' in window) window.speechSynthesis.cancel();
@@ -957,7 +983,7 @@
         feedbackSpeaking = false;
         audioMode = '';
         els.feedbackSpeak.textContent = '해설 다시 듣기';
-        els.modelSpeak.textContent = '모범답변 듣기';
+        els.modelSpeak.textContent = 'AI 음성으로 듣기';
         if (message) els.subline.textContent = message;
       }
       function base64ToBlob(base64, mimeType) {
@@ -977,6 +1003,50 @@
           return;
         }
         await speakCoachText(text, 'feedback');
+      }
+      async function requestPersonalModelAnswer() {
+        if (!lastAnsweredText || modelAnswerLoading || answerActive) return;
+        const sourceAnswer = lastAnsweredText;
+        const sourceQuestion = lastAnsweredQuestion;
+        stopFeedbackAudio();
+        modelAnswerLoading = true;
+        lastModelAnswer = '';
+        els.modelGenerate.disabled = true;
+        els.modelGenerate.textContent = '모범답변 생성 중...';
+        els.modelSpeak.disabled = true;
+        els.modelAnswerPanel.hidden = false;
+        els.modelAnswerText.textContent = '내 답변의 내용과 표현을 분석해 IH 수준으로 다듬는 중입니다.';
+        setStatus('내 답변 기반 모범답변 생성 중', true);
+        els.subline.textContent = '내 답변의 사실과 의미는 유지하고 문법·구조·자연스러움을 개선합니다.';
+        try {
+          const response = await fetch('/api/model-answer', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              question: sourceQuestion,
+              answer: sourceAnswer,
+              topic: topic().label,
+              targetSeconds: Number(els.length.value)
+            })
+          });
+          const data = await response.json().catch(function () { return {}; });
+          if (!response.ok) throw new Error(data.error || 'Personalized model answer generation failed.');
+          if (lastAnsweredText !== sourceAnswer || lastAnsweredQuestion !== sourceQuestion) return;
+          lastModelAnswer = String(data.modelAnswer || '').trim();
+          if (!lastModelAnswer) throw new Error('모범답변이 비어 있습니다. 다시 시도해 주세요.');
+          els.modelAnswerText.textContent = lastModelAnswer;
+          els.modelSpeak.disabled = false;
+          setStatus('내 답변 기반 모범답변 완료', false);
+          els.subline.textContent = '내 답변을 바탕으로 만든 AI 답변입니다. 텍스트로 보거나 AI 음성으로 들을 수 있습니다.';
+        } catch (error) {
+          els.modelAnswerText.textContent = (error && error.message) ? error.message : '모범답변 생성에 실패했습니다.';
+          setStatus('모범답변 생성 실패', false);
+          els.subline.textContent = '잠시 후 다시 시도해 주세요.';
+        } finally {
+          modelAnswerLoading = false;
+          els.modelGenerate.textContent = lastModelAnswer ? '내 답변 기반 다시 만들기' : '내 답변 기반 모범답변 만들기';
+          els.modelGenerate.disabled = !lastAnsweredText;
+        }
       }
       async function speakModelAnswer() {
         if (feedbackSpeaking && audioMode === 'modelAnswer') {
@@ -1000,10 +1070,10 @@
         feedbackSpeaking = true;
         audioMode = mode;
         const isModel = mode === 'modelAnswer';
-        if (isModel) els.modelSpeak.textContent = '모범답변 정지';
+        if (isModel) els.modelSpeak.textContent = 'AI 음성 정지';
         else els.feedbackSpeak.textContent = '해설 정지';
         setStatus(isModel ? '모범답변 음성 생성 중' : 'OpenAI 피드백 음성 생성 중', true);
-        els.subline.textContent = isModel ? '이 질문의 IH 모범답변 음성을 만드는 중입니다.' : '자연스러운 피드백 음성을 만드는 중입니다.';
+        els.subline.textContent = isModel ? '내 답변을 바탕으로 만든 IH 답변의 AI 음성을 준비하는 중입니다.' : '자연스러운 피드백 음성을 만드는 중입니다.';
         try {
           const response = await fetch('/api/speak', {
             method: 'POST',
@@ -1025,7 +1095,7 @@
             setStatus('음성 재생 실패', false);
           };
           setStatus(isModel ? '모범답변 듣는 중' : '피드백 읽는 중', false);
-          els.subline.textContent = isModel ? 'IH 수준 모범답변을 읽는 중입니다. 한 번 더 누르면 정지합니다.' : 'OpenAI 음성으로 피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
+          els.subline.textContent = isModel ? 'OpenAI가 생성한 IH 답변을 AI 음성으로 읽고 있습니다. 한 번 더 누르면 정지합니다.' : 'OpenAI 음성으로 피드백을 읽는 중입니다. 한 번 더 누르면 정지합니다.';
           await feedbackAudio.play();
         } catch (error) {
           stopFeedbackAudio();
@@ -1081,6 +1151,9 @@
         answerHasStarted = false;
         updateAnswerReplayButton();
         updateQuestionButton();
+        lastAnsweredText = answer;
+        lastAnsweredQuestion = answer ? lastQuestion : '';
+        resetModelAnswer(!answer);
         if (answer) {
           els.line.textContent = answer;
           addLog('You', answer, true);
@@ -1126,6 +1199,7 @@
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         stopFeedbackAudio();
         stopAnswerPlayback();
+        resetModelAnswer(true);
         transcript = '';
         liveTranscript = '';
         audioChunks = [];
@@ -1202,11 +1276,13 @@
       els.answerReplay.addEventListener('click', replayLastAnswer);
       els.stop.addEventListener('click', stop);
       els.feedbackSpeak.addEventListener('click', speakFeedback);
+      els.modelGenerate.addEventListener('click', requestPersonalModelAnswer);
       els.modelSpeak.addEventListener('click', speakModelAnswer);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'surprise' ? surpriseTopicKeys[0] : (isSetMode() ? surveyTopicKeys[0] : els.topic.value); currentSetQueue = []; currentSetTopicKey = ''; lastModelAnswer = ''; els.modelSpeak.disabled = true; questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); const statusByMode = { survey: '내 설문 13개 전용 랜덤 모드', mock: '실전 랜덤 · 설문 70% + 돌발 30%', surprise: '검증 돌발 기출 복원 5세트 랜덤 모드' }; setStatus(statusByMode[els.topic.value] || '선택 주제 연습 모드', false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'surprise' ? surpriseTopicKeys[0] : (isSetMode() ? surveyTopicKeys[0] : els.topic.value); currentSetQueue = []; currentSetTopicKey = ''; resetModelAnswer(true); questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); const statusByMode = { survey: '내 설문 13개 전용 랜덤 모드', mock: '실전 랜덤 · 설문 70% + 돌발 30%', surprise: '검증 돌발 기출 복원 5세트 랜덤 모드' }; setStatus(statusByMode[els.topic.value] || '선택 주제 연습 모드', false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       updateAnswerReplayButton();
+      resetModelAnswer(true);
       renderAssessment();
       renderLists();
       if (window.lucide) window.lucide.createIcons({ attrs: { width: 16, height: 16 } });

@@ -42,16 +42,13 @@ export default async function handler(req, res) {
               'Give practical feedback, concise but detailed.',
               'Focus on OPIc IH: relevance, structure, detail, grammar, and natural correction of the learner’s own sentences.',
               'In feedback items, do not replace the learner’s whole answer. Correct the learner’s actual wording with before/after examples.',
-              'Return only valid JSON with keys items, assessment, and modelAnswer. items must be an array of 6-8 English strings.',
+              'Return only valid JSON with keys items and assessment. items must be an array of 6-8 English strings.',
               'assessment must contain level, levelPosition, confidence, and reasonKo.',
               'Use this continuous levelPosition scale: NL=0, NM=1, NH=2, IL=3, IM1=4, IM2=5, IM3=6, IH=7, AL=8. Decimals are required when the answer falls between levels.',
               'Choose level as the nearest named level to levelPosition. confidence must be an integer from 0 to 100.',
               'reasonKo must be one short Korean sentence explaining the strongest evidence and the main limitation.',
               'Judge task completion, discourse length and organization, grammar, vocabulary, fluency, and specificity conservatively. This is an unofficial practice estimate.',
-              'Every feedback item must be in English only. Do not include Korean translations in items.',
-              'modelAnswer must be a natural 100-140 word OPIc IH-level answer to the exact question.',
-              'The model answer must use connected paragraph-level speech, specific personal detail, natural transitions, and accurate major time frames when relevant.',
-              'Write modelAnswer in English only, without a title, label, bullet points, or coaching notes.'
+              'Every feedback item must be in English only. Do not include Korean translations in items.'
             ].join(' ')
           },
           {
@@ -71,9 +68,7 @@ export default async function handler(req, res) {
               '5. Do not put a full replacement answer inside items.',
               '6. Give 2-3 reusable sentence patterns that are close to what the learner tried to say.',
               '7. Keep every item useful for the next attempt.',
-              '8. Write all feedback items in English only.',
-              '9. Create a separate modelAnswer that directly answers this question at a realistic IH level.',
-              '10. Make modelAnswer useful for listening practice, but do not copy the learner transcript.'
+              '8. Write all feedback items in English only.'
             ].join('\n')
           }
         ]
@@ -97,19 +92,10 @@ export default async function handler(req, res) {
     const items = Array.isArray(parsed.items) ? parsed.items.map(String).filter(Boolean).slice(0, 10) : [];
     const speechText = items.join(' ');
     const assessment = normalizeAssessment(parsed.assessment);
-    const modelAnswer = normalizeModelAnswer(parsed.modelAnswer);
-
-    return res.status(200).json({ items, speechText, assessment, modelAnswer, model });
+    return res.status(200).json({ items, speechText, assessment, model });
   } catch (error) {
     return res.status(500).json({ error: error?.message || 'Feedback server error.' });
   }
-}
-
-function normalizeModelAnswer(value) {
-  return String(value || '')
-    .replace(/^(model answer|sample answer)\s*:\s*/i, '')
-    .trim()
-    .slice(0, 2400);
 }
 
 function normalizeAssessment(value) {
