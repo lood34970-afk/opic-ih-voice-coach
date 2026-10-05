@@ -94,10 +94,10 @@
       <div class="viz-controls" aria-label="OPIc IH 연습 선택">
         <label class="form-label">문제 유형
           <select id="oiv-topic" class="form-select">
-            <option value="survey" selected>내 설문 주제만 랜덤</option>
-            <option value="mock">실전 종합 랜덤 (설문 + 돌발 + 롤플레이)</option>
-            <option value="surprise">검증 돌발 5세트만 랜덤</option>
-            <option value="roleplay">검증 롤플레이 2세트만 랜덤</option>
+            <option value="survey" selected>내 설문 주제 한 바퀴 셔플</option>
+            <option value="mock">실전 종합 한 바퀴 셔플 (설문 + 돌발 + 롤플레이)</option>
+            <option value="surprise">검증 돌발 5세트 한 바퀴 셔플</option>
+            <option value="roleplay">검증 롤플레이 2세트 한 바퀴 셔플</option>
             <optgroup label="내 설문 주제 13개">
               <option value="home">가족과 아파트 거주</option>
               <option value="movie">영화 보기</option>
@@ -162,7 +162,7 @@
       <div id="oiv-source" class="text-small text-muted">돌발은 공개 기출 복원 3문항 세트만, 롤플레이는 공식 실전 자료와 공개 기출 복원에서 3콤보가 확인된 세트만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.7.0 · build 2026.10.01.2</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.8.0 · build 2026.10.06.1</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -582,9 +582,6 @@
       let answerMaxSeconds = 150;
       let questionCanAdvance = true;
       let answerHasStarted = false;
-      let recentQuestionKeys = [];
-      let currentSetQueue = [];
-      let currentSetTopicKey = '';
       let lastFeedbackText = '아직 들을 피드백이 없습니다. 답변을 종료하면 자세한 피드백이 만들어집니다.';
       let lastModelAnswer = '';
       let lastAnsweredText = '';
@@ -603,29 +600,71 @@
       function isSurpriseTopic(topicKey) { return surpriseTopicKeys.indexOf(topicKey) !== -1; }
       function isRoleplayTopic(topicKey) { return roleplayTopicKeys.indexOf(topicKey) !== -1; }
       function isSetMode() { return ['survey', 'mock', 'surprise', 'roleplay'].indexOf(els.topic.value) !== -1 || isRoleplayTopic(els.topic.value); }
-      function pickRandomTopicKey(keys) {
-        return keys[Math.floor(Math.random() * keys.length)];
-      }
-      function randomTopicKey(mode) {
-        if (isRoleplayTopic(mode)) return mode;
-        if (mode === 'surprise') return pickRandomTopicKey(surpriseTopicKeys);
-        if (mode === 'roleplay') return pickRandomTopicKey(roleplayTopicKeys);
-        if (mode === 'mock') {
-          const roll = Math.random();
-          if (roll < 0.15) return pickRandomTopicKey(roleplayTopicKeys);
-          if (roll < 0.4) return pickRandomTopicKey(surpriseTopicKeys);
+      const questionCyclesStorageKey = 'oiv-question-cycles-v1';
+      const activeSetsStorageKey = 'oiv-active-question-sets-v1';
+      const storageFallback = {};
+      function loadStoredObject(key) {
+        try {
+          const parsed = JSON.parse(localStorage.getItem(key) || '{}');
+          storageFallback[key] = parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+        } catch (error) {
+          // Continue the cycle from memory when persistent browser storage is unavailable.
         }
-        return pickRandomTopicKey(surveyTopicKeys);
+        return storageFallback[key] || {};
+      }
+      function saveStoredObject(key, value) {
+        storageFallback[key] = value;
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+          // The current page still retains its no-repeat cycle in memory.
+        }
+      }
+      function shuffled(items) {
+        const result = items.slice();
+        for (let index = result.length - 1; index > 0; index -= 1) {
+          const swapIndex = Math.floor(Math.random() * (index + 1));
+          const value = result[index];
+          result[index] = result[swapIndex];
+          result[swapIndex] = value;
+        }
+        return result;
+      }
+      function catalogSignature(items) {
+        let hash = 2166136261;
+        items.forEach(function (item) {
+          for (let index = 0; index < item.length; index += 1) {
+            hash ^= item.charCodeAt(index);
+            hash = Math.imul(hash, 16777619);
+          }
+        });
+        return items.length + ':' + (hash >>> 0);
+      }
+      function takeCycleItem(scope, candidates) {
+        const items = candidates.filter(function (item, index) { return candidates.indexOf(item) === index; });
+        if (!items.length) return '';
+        const cycles = loadStoredObject(questionCyclesStorageKey);
+        const signature = catalogSignature(items);
+        const previous = cycles[scope];
+        let remaining = previous && previous.signature === signature && Array.isArray(previous.remaining)
+          ? previous.remaining.filter(function (item) { return items.indexOf(item) !== -1; })
+          : [];
+        if (!remaining.length) {
+          remaining = shuffled(items);
+          if (items.length > 1 && previous && remaining[remaining.length - 1] === previous.last) {
+            const lastIndex = remaining.length - 1;
+            const value = remaining[lastIndex];
+            remaining[lastIndex] = remaining[lastIndex - 1];
+            remaining[lastIndex - 1] = value;
+          }
+        }
+        const selected = remaining.pop();
+        cycles[scope] = { signature: signature, remaining: remaining, last: selected };
+        saveStoredObject(questionCyclesStorageKey, cycles);
+        return selected;
       }
       function selectedTopicKey() { return isSetMode() ? activeTopicKey : els.topic.value; }
       function topic() { return topics[selectedTopicKey()]; }
-      function rememberQuestion(key) {
-        recentQuestionKeys.push(key);
-        if (recentQuestionKeys.length > 120) recentQuestionKeys.shift();
-      }
-      function makeQuestionKey(topicKey, question) {
-        return topicKey + ':' + topics[topicKey].questions.indexOf(question);
-      }
       function questionCount(keys) {
         return keys.reduce(function (sum, key) { return sum + topics[key].questions.length; }, 0);
       }
@@ -637,43 +676,54 @@
         }
         return combos;
       }
-      function buildRealisticSet(topicKey) {
-        const combos = topicCombos(topicKey);
-        combos.sort(function (a, b) {
-          const aRecent = a.reduce(function (sum, question) { return sum + (recentQuestionKeys.indexOf(makeQuestionKey(topicKey, question)) !== -1 ? 1 : 0); }, 0);
-          const bRecent = b.reduce(function (sum, question) { return sum + (recentQuestionKeys.indexOf(makeQuestionKey(topicKey, question)) !== -1 ? 1 : 0); }, 0);
-          return aRecent - bRecent || Math.random() - 0.5;
+      function setTopicPool(mode) {
+        if (isRoleplayTopic(mode)) return [mode];
+        if (mode === 'surprise') return surpriseTopicKeys;
+        if (mode === 'roleplay') return roleplayTopicKeys;
+        if (mode === 'mock') return allowedTopicKeys;
+        return surveyTopicKeys;
+      }
+      function setEntries(mode) {
+        const entries = [];
+        setTopicPool(mode).forEach(function (topicKey) {
+          topicCombos(topicKey).forEach(function (questions, comboIndex) {
+            entries.push({ id: topicKey + ':' + comboIndex, topicKey: topicKey, questions: questions });
+          });
         });
-        return combos[0] || topics[topicKey].questions.slice(0, 3);
+        return entries;
+      }
+      function takeSetQuestion(mode) {
+        const entries = setEntries(mode);
+        const entryIds = entries.map(function (entry) { return entry.id; });
+        const activeSets = loadStoredObject(activeSetsStorageKey);
+        const scope = 'sets:' + mode;
+        let active = activeSets[scope];
+        let entry = active && entries.find(function (candidate) { return candidate.id === active.id; });
+        if (!entry || !Number.isInteger(active.nextIndex) || active.nextIndex < 0 || active.nextIndex >= entry.questions.length) {
+          const entryId = takeCycleItem(scope, entryIds);
+          entry = entries.find(function (candidate) { return candidate.id === entryId; }) || entries[0];
+          active = { id: entry.id, nextIndex: 0 };
+        }
+        const question = entry.questions[active.nextIndex];
+        const remainingInSet = entry.questions.length - active.nextIndex - 1;
+        active.nextIndex += 1;
+        if (active.nextIndex >= entry.questions.length) delete activeSets[scope];
+        else activeSets[scope] = active;
+        saveStoredObject(activeSetsStorageKey, activeSets);
+        return { topicKey: entry.topicKey, question: question, remainingInSet: remainingInSet };
       }
       function pickQuestion() {
         if (isSetMode()) {
-          if (!currentSetQueue.length) {
-            const previousTopicKey = currentSetTopicKey;
-            currentSetTopicKey = randomTopicKey(els.topic.value);
-            for (let attempt = 0; attempt < 20 && currentSetTopicKey === previousTopicKey; attempt += 1) {
-              currentSetTopicKey = randomTopicKey(els.topic.value);
-            }
-            currentSetQueue = buildRealisticSet(currentSetTopicKey);
-          }
-          activeTopicKey = currentSetTopicKey;
-          const question = currentSetQueue.shift();
-          rememberQuestion(makeQuestionKey(activeTopicKey, question));
-          const pool = els.topic.value === 'surprise' ? surpriseTopicKeys : (els.topic.value === 'roleplay' ? roleplayTopicKeys : (els.topic.value === 'mock' ? allowedTopicKeys : (isRoleplayTopic(els.topic.value) ? [els.topic.value] : surveyTopicKeys)));
-          return { topicKey: activeTopicKey, question: question, total: questionCount(pool), remainingInSet: currentSetQueue.length, surprise: isSurpriseTopic(activeTopicKey), roleplay: isRoleplayTopic(activeTopicKey) };
+          const picked = takeSetQuestion(els.topic.value);
+          activeTopicKey = picked.topicKey;
+          const pool = setTopicPool(els.topic.value);
+          return { topicKey: activeTopicKey, question: picked.question, total: questionCount(pool), remainingInSet: picked.remainingInSet, surprise: isSurpriseTopic(activeTopicKey), roleplay: isRoleplayTopic(activeTopicKey) };
         }
         activeTopicKey = els.topic.value;
-        currentSetQueue = [];
-        currentSetTopicKey = '';
         const list = topics[activeTopicKey].questions;
-        let index = Math.floor(Math.random() * list.length);
-        let qKey = activeTopicKey + ':' + index;
-        for (let attempt = 0; attempt < 120; attempt += 1) {
-          index = Math.floor(Math.random() * list.length);
-          qKey = activeTopicKey + ':' + index;
-          if (recentQuestionKeys.indexOf(qKey) === -1) break;
-        }
-        rememberQuestion(qKey);
+        const questionKeys = list.map(function (_, index) { return activeTopicKey + ':' + index; });
+        const qKey = takeCycleItem('questions:' + activeTopicKey, questionKeys);
+        const index = Number(qKey.slice(qKey.lastIndexOf(':') + 1));
         return { topicKey: activeTopicKey, question: list[index], total: list.length, remainingInSet: 0, surprise: isSurpriseTopic(activeTopicKey), roleplay: isRoleplayTopic(activeTopicKey) };
       }
       function safe(text) { return text.replace(/[&<>"]/g, function (ch) { return ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[ch]); }); }
@@ -1317,7 +1367,7 @@
       els.feedbackSpeak.addEventListener('click', speakFeedback);
       els.modelGenerate.addEventListener('click', requestPersonalModelAnswer);
       els.modelSpeak.addEventListener('click', speakModelAnswer);
-      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'surprise' ? surpriseTopicKeys[0] : (els.topic.value === 'roleplay' ? roleplayTopicKeys[0] : (isRoleplayTopic(els.topic.value) ? els.topic.value : (isSetMode() ? surveyTopicKeys[0] : els.topic.value))); currentSetQueue = []; currentSetTopicKey = ''; resetModelAnswer(true); questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); const statusByMode = { survey: '내 설문 13개 전용 랜덤 모드', mock: '실전 종합 랜덤 · 설문 + 돌발 + 롤플레이', surprise: '검증 돌발 기출 복원 5세트 랜덤 모드', roleplay: '검증 롤플레이 3콤보 2세트 랜덤 모드' }; setStatus(statusByMode[els.topic.value] || (isRoleplayTopic(els.topic.value) ? '선택한 롤플레이 3콤보 순차 연습' : '선택 주제 연습 모드'), false); });
+      els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'surprise' ? surpriseTopicKeys[0] : (els.topic.value === 'roleplay' ? roleplayTopicKeys[0] : (isRoleplayTopic(els.topic.value) ? els.topic.value : (isSetMode() ? surveyTopicKeys[0] : els.topic.value))); resetModelAnswer(true); questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); const statusByMode = { survey: '내 설문 13개 · 한 바퀴 중복 없음', mock: '실전 종합 · 한 바퀴 중복 없음', surprise: '검증 돌발 5세트 · 한 바퀴 중복 없음', roleplay: '검증 롤플레이 2세트 · 한 바퀴 중복 없음' }; setStatus(statusByMode[els.topic.value] || (isRoleplayTopic(els.topic.value) ? '선택한 롤플레이 3콤보 순차 연습' : '선택 주제 · 한 바퀴 중복 없음'), false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
       updateQuestionButton();
       updateAnswerReplayButton();
