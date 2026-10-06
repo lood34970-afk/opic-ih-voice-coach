@@ -163,7 +163,7 @@
       <div id="oiv-source" class="text-small text-muted">돌발은 공개 기출 복원 3문항 세트만, 롤플레이는 공식 실전 자료와 공개 기출 복원에서 3콤보가 확인된 세트만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.8.1 · build 2026.10.06.2</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.8.2 · build 2026.10.06.3</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -195,7 +195,7 @@
           <div class="oiv-feedback-actions">
             <button id="oiv-feedback-speak" type="button" class="btn btn-ghost text-small">해설 다시 듣기</button>
             <button id="oiv-model-generate" type="button" class="btn btn-ghost text-small" disabled>내 답변 기반 모범답변 만들기</button>
-            <button id="oiv-model-speak" type="button" class="btn btn-ghost text-small" disabled>AI 음성으로 듣기</button>
+            <button id="oiv-model-speak" type="button" class="btn btn-ghost text-small" disabled>모범답변 듣기</button>
           </div>
         </div>
         <ul id="oiv-feedback"></ul>
@@ -925,7 +925,7 @@
         els.modelAnswerText.textContent = '';
         els.modelAnswerPanel.hidden = true;
         els.modelGenerate.textContent = '내 답변 기반 모범답변 만들기';
-        els.modelSpeak.textContent = 'AI 음성으로 듣기';
+        els.modelSpeak.textContent = '모범답변 듣기';
         els.modelSpeak.disabled = true;
         if (clearAnswerSource) {
           lastAnsweredText = '';
@@ -1096,7 +1096,7 @@
         feedbackSpeaking = false;
         audioMode = '';
         els.feedbackSpeak.textContent = '해설 다시 듣기';
-        els.modelSpeak.textContent = 'AI 음성으로 듣기';
+        els.modelSpeak.textContent = '모범답변 듣기';
         if (message) els.subline.textContent = message;
       }
       function base64ToBlob(base64, mimeType) {
@@ -1150,7 +1150,8 @@
           els.modelAnswerText.textContent = lastModelAnswer;
           els.modelSpeak.disabled = false;
           setStatus('내 답변 기반 모범답변 완료', false);
-          els.subline.textContent = '내 답변을 바탕으로 만든 AI 답변입니다. 텍스트로 보거나 AI 음성으로 들을 수 있습니다.';
+          els.subline.textContent = '내 답변을 바탕으로 만든 AI 답변입니다. 지금 모범답변을 음성으로 읽습니다.';
+          await speakModelAnswer();
         } catch (error) {
           els.modelAnswerText.textContent = (error && error.message) ? error.message : '모범답변 생성에 실패했습니다.';
           setStatus('모범답변 생성 실패', false);
@@ -1183,7 +1184,7 @@
         feedbackSpeaking = true;
         audioMode = mode;
         const isModel = mode === 'modelAnswer';
-        if (isModel) els.modelSpeak.textContent = 'AI 음성 정지';
+        if (isModel) els.modelSpeak.textContent = '모범답변 정지';
         else els.feedbackSpeak.textContent = '해설 정지';
         setStatus(isModel ? '모범답변 음성 생성 중' : 'OpenAI 피드백 음성 생성 중', true);
         els.subline.textContent = isModel ? '내 답변을 바탕으로 만든 IH 답변의 AI 음성을 준비하는 중입니다.' : '자연스러운 피드백 음성을 만드는 중입니다.';
