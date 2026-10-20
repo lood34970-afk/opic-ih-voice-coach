@@ -149,7 +149,6 @@
         <div class="viz-row" aria-label="연습 버튼">
           <button id="oiv-question" type="button" class="btn btn-primary">문제 듣기</button>
           <button id="oiv-answer" type="button" class="btn">답변 시작</button>
-          <button id="oiv-repeat" type="button" class="btn">다시 듣기</button>
           <button id="oiv-answer-replay" type="button" class="btn" disabled>내 답변 듣기</button>
           <button id="oiv-model-generate" type="button" class="btn" disabled>주제별 모범답변 만들기·듣기</button>
           <button id="oiv-retry" type="button" class="btn" hidden disabled>전송 다시 시도</button>
@@ -552,7 +551,7 @@
       const els = {
         dot: root.querySelector('#oiv-dot'), status: root.querySelector('#oiv-status'), topic: root.querySelector('#oiv-topic'), length: root.querySelector('#oiv-length'),
         line: root.querySelector('#oiv-line'), subline: root.querySelector('#oiv-subline'), meter: root.querySelector('#oiv-meter'), time: root.querySelector('#oiv-time'),
-        question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), repeat: root.querySelector('#oiv-repeat'), answerReplay: root.querySelector('#oiv-answer-replay'), retry: root.querySelector('#oiv-retry'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
+        question: root.querySelector('#oiv-question'), answer: root.querySelector('#oiv-answer'), answerReplay: root.querySelector('#oiv-answer-replay'), retry: root.querySelector('#oiv-retry'), stop: root.querySelector('#oiv-stop'), log: root.querySelector('#oiv-log'),
         levelValue: root.querySelector('#oiv-level-value'), levelScale: root.querySelector('#oiv-level-scale'), levelMarker: root.querySelector('#oiv-level-marker'),
         levelMeta: root.querySelector('#oiv-level-meta'), levelReason: root.querySelector('#oiv-level-reason'),
         feedback: root.querySelector('#oiv-feedback'), feedbackSpeak: root.querySelector('#oiv-feedback-speak'),
@@ -1431,7 +1430,6 @@
         setStatus('연습 종료', false);
       }      els.question.addEventListener('click', nextQuestion);
       els.answer.addEventListener('click', listen);
-      els.repeat.addEventListener('click', function () { if (lastQuestion) speak(lastQuestion); else nextQuestion(); });
       els.answerReplay.addEventListener('click', replayLastAnswer);
       els.retry.addEventListener('click', retryLastProcessing);
       els.stop.addEventListener('click', stop);
