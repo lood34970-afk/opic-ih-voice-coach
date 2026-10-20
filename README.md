@@ -11,7 +11,7 @@
 5. `/api/transcribe` 서버리스 함수가 녹음 파일을 OpenAI API로 전송
 6. `/api/feedback` 서버리스 함수가 transcript를 GPT로 정밀 평가
 7. 질문 적합도, 문법, 자연스러운 표현, IH 답변 구조 피드백 생성
-8. `내 답변 기반 모범답변 만들기`를 누르면 `/api/model-answer`가 사용자의 사실과 의미를 유지한 IH 답변 생성
+8. `내 답변 기반 모범답변 만들기`를 누르면 `/api/model-answer`가 사용자의 답변을 우선하고 선택 주제의 저장된 개인 main point로 세부 내용을 보완한 IH 답변 생성
 9. `/api/speak` 서버리스 함수가 피드백 또는 모범답변을 OpenAI TTS MP3로 변환
 10. 생성된 모범답변을 텍스트로 확인하거나 AI 음성으로 듣기
 

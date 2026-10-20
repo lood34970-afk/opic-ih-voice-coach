@@ -151,7 +151,7 @@
           <button id="oiv-answer" type="button" class="btn">답변 시작</button>
           <button id="oiv-repeat" type="button" class="btn">다시 듣기</button>
           <button id="oiv-answer-replay" type="button" class="btn" disabled>내 답변 듣기</button>
-          <button id="oiv-model-generate" type="button" class="btn" disabled>모범답변 만들기·듣기</button>
+          <button id="oiv-model-generate" type="button" class="btn" disabled>주제별 모범답변 만들기·듣기</button>
           <button id="oiv-retry" type="button" class="btn" hidden disabled>전송 다시 시도</button>
           <button id="oiv-stop" type="button" class="btn btn-ghost">종료</button>
         </div>
@@ -164,7 +164,7 @@
       <div id="oiv-source" class="text-small text-muted">돌발은 공개 기출 복원 3문항 세트만, 롤플레이는 공식 실전 자료와 공개 기출 복원에서 3콤보가 확인된 세트만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v1.9.0 · build 2026.10.06.4</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v2.0.0 · build 2026.10.20.1</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -201,7 +201,7 @@
         <div id="oiv-model-answer-panel" class="oiv-model-answer" hidden>
           <div class="oiv-model-answer-head">
             <strong>내 답변 기반 IH 모범답변</strong>
-            <span class="oiv-model-answer-badge">OpenAI 생성 답변 · AI 음성</span>
+            <span class="oiv-model-answer-badge">OpenAI 생성 답변 · 주제별 main point 반영 · AI 음성</span>
           </div>
           <p id="oiv-model-answer-text" class="oiv-model-answer-text"></p>
         </div>
@@ -750,7 +750,7 @@
         if (modelSpeaking) els.modelGenerate.textContent = '모범답변 정지';
         else if (modelAnswerLoading) els.modelGenerate.textContent = '모범답변 만드는 중...';
         else if (lastModelAnswer) els.modelGenerate.textContent = '모범답변 다시 듣기';
-        else els.modelGenerate.textContent = '모범답변 만들기·듣기';
+        else els.modelGenerate.textContent = '주제별 모범답변 만들기·듣기';
         els.modelGenerate.disabled = answerActive || (!modelSpeaking && modelAnswerLoading) || (!lastAnsweredText && !lastModelAnswer);
       }
       function stopAnswerPlayback(message) {
@@ -1140,9 +1140,9 @@
         lastModelAnswer = '';
         updateModelAnswerButton();
         els.modelAnswerPanel.hidden = false;
-        els.modelAnswerText.textContent = '내 답변의 내용과 표현을 분석해 IH 수준으로 다듬는 중입니다.';
-        setStatus('내 답변 기반 모범답변 생성 중', true);
-        els.subline.textContent = '내 답변의 사실과 의미는 유지하고 문법·구조·자연스러움을 개선합니다.';
+        els.modelAnswerText.textContent = '내 답변과 저장된 주제별 main point를 바탕으로 IH 수준 답변을 만드는 중입니다.';
+        setStatus('주제별 모범답변 생성 중', true);
+        els.subline.textContent = '내 답변을 우선하고, 관련 있는 개인 main point로 세부 내용을 보완합니다.';
         try {
           const response = await fetch('/api/model-answer', {
             method: 'POST',
@@ -1161,7 +1161,7 @@
           if (!lastModelAnswer) throw new Error('모범답변이 비어 있습니다. 다시 시도해 주세요.');
           els.modelAnswerText.textContent = lastModelAnswer;
           setStatus('내 답변 기반 모범답변 완료', false);
-          els.subline.textContent = '내 답변을 바탕으로 만든 AI 답변입니다. 지금 모범답변을 음성으로 읽습니다.';
+          els.subline.textContent = '내 답변과 주제별 main point를 바탕으로 만든 AI 답변입니다. 지금 음성으로 읽습니다.';
           await speakModelAnswer();
         } catch (error) {
           els.modelAnswerText.textContent = (error && error.message) ? error.message : '모범답변 생성에 실패했습니다.';

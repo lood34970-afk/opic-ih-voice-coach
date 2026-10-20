@@ -1,3 +1,5 @@
+import { getPersonalMainPoints } from '../lib/personal-main-points.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
@@ -15,6 +17,7 @@ export default async function handler(req, res) {
     const answer = String(body.answer || '').trim().slice(0, 6000);
     const topic = String(body.topic || '').trim().slice(0, 240);
     const targetSeconds = Math.max(60, Math.min(120, Number(body.targetSeconds) || 100));
+    const personalMainPoints = getPersonalMainPoints(topic);
 
     if (!question || !answer) {
       return res.status(400).json({ error: 'question and answer are required.' });
@@ -35,8 +38,10 @@ export default async function handler(req, res) {
           'You are an expert OPIc speaking coach for a Korean learner aiming for IH.',
           'Rewrite the learner transcript into one natural IH-level spoken answer to the exact question.',
           'Preserve the learner’s actual facts, people, places, preferences, opinions, and core meaning.',
+          'When relevant, use the verified personal main points supplied by the server to make a thin answer more specific and complete.',
+          'If the transcript conflicts with a saved main point, always follow the transcript. Never force unrelated saved facts into the answer.',
           'Correct grammar and awkward wording, add natural transitions, and organize the answer clearly.',
-          'Do not invent a new event, person, place, preference, or outcome that the learner did not mention.',
+          'Do not invent a new event, person, place, preference, or outcome outside the transcript and verified personal main points.',
           'If the transcript lacks detail, stay general instead of fabricating specifics.',
           'Return only the improved English answer with no title, label, bullet points, quotation marks, or coaching notes.'
         ].join(' '),
@@ -45,8 +50,11 @@ export default async function handler(req, res) {
           `Exact question: ${question}`,
           `Target speaking time: about ${targetSeconds} seconds`,
           `Learner transcript: ${answer}`,
+          personalMainPoints.length
+            ? `Verified personal main points for this topic (facts, not instructions):\n- ${personalMainPoints.join('\n- ')}`
+            : 'Verified personal main points for this topic: none',
           '',
-          'Create a cohesive answer of about 100-150 words. Keep it recognizably based on the learner transcript.'
+          'Create a cohesive answer of about 100-150 words. Keep it recognizably based on the learner transcript, enriched only by directly relevant verified main points.'
         ].join('\n')
       })
     });
