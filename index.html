@@ -163,7 +163,7 @@
       <div id="oiv-source" class="text-small text-muted">돌발은 공개 기출 복원 3문항 세트만, 롤플레이는 공식 실전 자료와 공개 기출 복원에서 3콤보가 확인된 세트만 사용합니다.</div>
     </div>
 
-    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v2.0.0 · build 2026.10.20.1</div>
+    <div id="oiv-build" class="oiv-build" aria-label="현재 앱 버전">Vercel v2.0.1 · build 2026.10.21.1</div>
 
     <div class="oiv-helper">
       <section class="card" aria-labelledby="oiv-level-title">
@@ -605,6 +605,7 @@
       function isSetMode() { return ['survey', 'mock', 'surprise', 'roleplay'].indexOf(els.topic.value) !== -1 || isRoleplayTopic(els.topic.value); }
       const questionCyclesStorageKey = 'oiv-question-cycles-v1';
       const activeSetsStorageKey = 'oiv-active-question-sets-v1';
+      const setInactivityTimeoutMs = 2 * 60 * 60 * 1000;
       const storageFallback = {};
       function loadStoredObject(key) {
         try {
@@ -695,32 +696,56 @@
         });
         return entries;
       }
+      function activeSetExpired(active, now) {
+        if (!active) return false;
+        if (!Number.isFinite(active.lastActiveAt)) return true;
+        return now - active.lastActiveAt >= setInactivityTimeoutMs;
+      }
+      function touchActiveSetActivity() {
+        if (!isSetMode()) return;
+        const activeSets = loadStoredObject(activeSetsStorageKey);
+        const scope = 'sets:' + els.topic.value;
+        const active = activeSets[scope];
+        if (!active) return;
+        const now = Date.now();
+        if (activeSetExpired(active, now)) return;
+        active.lastActiveAt = now;
+        activeSets[scope] = active;
+        saveStoredObject(activeSetsStorageKey, activeSets);
+      }
       function takeSetQuestion(mode) {
         const entries = setEntries(mode);
         const entryIds = entries.map(function (entry) { return entry.id; });
         const activeSets = loadStoredObject(activeSetsStorageKey);
         const scope = 'sets:' + mode;
+        const now = Date.now();
         let active = activeSets[scope];
+        const startedNextSetAfterInactivity = activeSetExpired(active, now);
+        if (startedNextSetAfterInactivity) {
+          delete activeSets[scope];
+          active = null;
+        }
         let entry = active && entries.find(function (candidate) { return candidate.id === active.id; });
         if (!entry || !Number.isInteger(active.nextIndex) || active.nextIndex < 0 || active.nextIndex >= entry.questions.length) {
           const entryId = takeCycleItem(scope, entryIds);
           entry = entries.find(function (candidate) { return candidate.id === entryId; }) || entries[0];
-          active = { id: entry.id, nextIndex: 0 };
+          active = { id: entry.id, nextIndex: 0, lastActiveAt: now };
         }
         const question = entry.questions[active.nextIndex];
         const remainingInSet = entry.questions.length - active.nextIndex - 1;
         active.nextIndex += 1;
+        active.lastActiveAt = now;
         if (active.nextIndex >= entry.questions.length) delete activeSets[scope];
         else activeSets[scope] = active;
         saveStoredObject(activeSetsStorageKey, activeSets);
-        return { topicKey: entry.topicKey, question: question, remainingInSet: remainingInSet };
+        return { topicKey: entry.topicKey, question: question, remainingInSet: remainingInSet, startedNextSetAfterInactivity: startedNextSetAfterInactivity };
       }
       function pickQuestion() {
         if (isSetMode()) {
           const picked = takeSetQuestion(els.topic.value);
           activeTopicKey = picked.topicKey;
           const pool = setTopicPool(els.topic.value);
-          return { topicKey: activeTopicKey, question: picked.question, total: questionCount(pool), remainingInSet: picked.remainingInSet, surprise: isSurpriseTopic(activeTopicKey), roleplay: isRoleplayTopic(activeTopicKey) };
+          return { topicKey: activeTopicKey, question: picked.question, total: questionCount(pool), remainingInSet: picked.remainingInSet, surprise: isSurpriseTopic(activeTopicKey), roleplay: isRoleplayTopic(activeTopicKey), startedNextSetAfterInactivity: picked.startedNextSetAfterInactivity };
         }
         activeTopicKey = els.topic.value;
         const list = topics[activeTopicKey].questions;
@@ -955,7 +980,7 @@
         speak(picked.question);
         renderSource(t);
         if (isSetMode()) {
-          els.subline.textContent = (picked.roleplay ? '롤플레이 세트 ' : (picked.surprise ? '돌발 세트 ' : '설문 세트 ')) + (3 - picked.remainingInSet) + '/3 · ' + t.label;
+          els.subline.textContent = (picked.startedNextSetAfterInactivity ? '2시간 이상 쉬어 다음 ' : '') + (picked.roleplay ? '롤플레이 세트 ' : (picked.surprise ? '돌발 세트 ' : '설문 세트 ')) + (3 - picked.remainingInSet) + '/3 · ' + t.label;
         } else {
           els.subline.textContent = (picked.roleplay ? '롤플레이 주제 · ' : (picked.surprise ? '돌발 주제 · ' : '복원 기출 · ')) + topicCombos(picked.topicKey).length + '콤보 · ' + picked.total + '문항 랜덤 · ' + t.label;
         }
@@ -1344,6 +1369,7 @@
           return;
         }
         clearRecognitionRestart();
+        touchActiveSetActivity();
         if ('speechSynthesis' in window) window.speechSynthesis.cancel();
         stopFeedbackAudio();
         stopAnswerPlayback();
@@ -1437,6 +1463,8 @@
       els.modelGenerate.addEventListener('click', requestPersonalModelAnswer);
       els.topic.addEventListener('change', function () { activeTopicKey = els.topic.value === 'surprise' ? surpriseTopicKeys[0] : (els.topic.value === 'roleplay' ? roleplayTopicKeys[0] : (isRoleplayTopic(els.topic.value) ? els.topic.value : (isSetMode() ? surveyTopicKeys[0] : els.topic.value))); resetModelAnswer(true); questionCanAdvance = true; answerHasStarted = false; updateQuestionButton(); renderLists(); const statusByMode = { survey: '내 설문 13개 · 한 바퀴 중복 없음', mock: '실전 종합 · 한 바퀴 중복 없음', surprise: '검증 돌발 5세트 · 한 바퀴 중복 없음', roleplay: '검증 롤플레이 2세트 · 한 바퀴 중복 없음' }; setStatus(statusByMode[els.topic.value] || (isRoleplayTopic(els.topic.value) ? '선택한 롤플레이 3콤보 순차 연습' : '선택 주제 · 한 바퀴 중복 없음'), false); });
       els.length.addEventListener('change', function () { renderFeedback(transcript); });
+      window.addEventListener('pagehide', touchActiveSetActivity);
+      document.addEventListener('visibilitychange', function () { if (document.hidden) touchActiveSetActivity(); });
       updateQuestionButton();
       updateAnswerReplayButton();
       updateRetryButton();
